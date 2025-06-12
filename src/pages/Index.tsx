@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -27,35 +27,58 @@ import {
   Target, 
   Activity,
   Building2,
-  Clock
+  Clock,
+  Database
 } from 'lucide-react';
+import { useGoogleSheets } from '@/hooks/useGoogleSheets';
+import { GoogleSheetsConfigComponent } from '@/components/GoogleSheetsConfig';
+import { DataEditor } from '@/components/DataEditor';
 
 const Index = () => {
-  // Mock data based on the screenshot
-  const visitData = [
-    { promotor: 'CLAUDIA NEGOSKI', visitas: 8, concluidas: 3, percentual: 37.5 },
-    { promotor: 'NATASHA DOS SANTOS ORTIZ', visitas: 8, concluidas: 1, percentual: 12.5 },
-    { promotor: 'EMILIANO MARTINS KAISER', visitas: 8, concluidas: 3, percentual: 37.5 },
-    { promotor: 'KALVYN HENRIQUE VEIGA', visitas: 8, concluidas: 4, percentual: 50.0 },
-    { promotor: 'LILIANE', visitas: 8, concluidas: 2, percentual: 25.0 },
-    { promotor: 'PALOMA', visitas: 8, concluidas: 4, percentual: 50.0 }
+  const { data, loading, config, saveConfig, loadData, updateData } = useGoogleSheets();
+
+  // Dados de exemplo para quando não há dados do Google Sheets
+  const fallbackData = [
+    { id: '1', promotor: 'CLAUDIA NEGOSKI', visitas: 8, concluidas: 3, percentual: 37.5, cidade: 'LAGUNA', marca: 'ALBA', data: '2024-06-12' },
+    { id: '2', promotor: 'NATASHA DOS SANTOS ORTIZ', visitas: 8, concluidas: 1, percentual: 12.5, cidade: 'AQUAFAST', marca: 'ALFAJOR', data: '2024-06-12' },
+    { id: '3', promotor: 'EMILIANO MARTINS KAISER', visitas: 8, concluidas: 3, percentual: 37.5, cidade: 'CHAPECÓ', marca: 'AQUAFAST', data: '2024-06-12' },
+    { id: '4', promotor: 'KALVYN HENRIQUE VEIGA', visitas: 8, concluidas: 4, percentual: 50.0, cidade: 'PORTO ALEGRE', marca: 'ARARAS', data: '2024-06-12' },
+    { id: '5', promotor: 'LILIANE', visitas: 8, concluidas: 2, percentual: 25.0, cidade: 'TORRES', marca: 'BELL', data: '2024-06-12' },
+    { id: '6', promotor: 'PALOMA', visitas: 8, concluidas: 4, percentual: 50.0, cidade: 'LAGUNA', marca: 'ALBA', data: '2024-06-12' }
   ];
 
-  const cityData = [
-    { city: 'LAGUNA', visits: 24, percentage: 35 },
-    { city: 'AQUAFAST', visits: 16, percentage: 23 },
-    { city: 'CHAPECÓ', visits: 12, percentage: 17 },
-    { city: 'PORTO ALEGRE', visits: 10, percentage: 15 },
-    { city: 'TORRES', visits: 7, percentage: 10 }
-  ];
+  const currentData = data.length > 0 ? data : fallbackData;
 
-  const brandData = [
-    { name: 'ALBA', value: 35, color: '#8b5cf6' },
-    { name: 'ALFAJOR', value: 25, color: '#06b6d4' },
-    { name: 'AQUAFAST', value: 20, color: '#10b981' },
-    { name: 'ARARAS', value: 12, color: '#f59e0b' },
-    { name: 'BELL', value: 8, color: '#ef4444' }
-  ];
+  // Processar dados para os gráficos
+  const cityData = currentData.reduce((acc, item) => {
+    const existing = acc.find(c => c.city === item.cidade);
+    if (existing) {
+      existing.visits += item.visitas;
+    } else {
+      acc.push({ city: item.cidade, visits: item.visitas, percentage: 0 });
+    }
+    return acc;
+  }, [] as { city: string; visits: number; percentage: number }[]);
+
+  const totalVisits = cityData.reduce((sum, city) => sum + city.visits, 0);
+  cityData.forEach(city => {
+    city.percentage = Math.round((city.visits / totalVisits) * 100);
+  });
+
+  const brandData = currentData.reduce((acc, item) => {
+    const existing = acc.find(b => b.name === item.marca);
+    if (existing) {
+      existing.value += 1;
+    } else {
+      acc.push({ name: item.marca, value: 1, color: `hsl(${Math.random() * 360}, 70%, 50%)` });
+    }
+    return acc;
+  }, [] as { name: string; value: number; color: string }[]);
+
+  const totalBrands = brandData.reduce((sum, brand) => sum + brand.value, 0);
+  brandData.forEach(brand => {
+    brand.value = Math.round((brand.value / totalBrands) * 100);
+  });
 
   const performanceData = [
     { month: 'Jan', visitas: 45, concluidas: 28 },
@@ -63,12 +86,13 @@ const Index = () => {
     { month: 'Mar', visitas: 48, concluidas: 31 },
     { month: 'Apr', visitas: 61, concluidas: 42 },
     { month: 'May', visitas: 55, concluidas: 38 },
-    { month: 'Jun', visitas: 67, concluidas: 51 }
+    { month: 'Jun', visitas: currentData.reduce((sum, item) => sum + item.visitas, 0), 
+      concluidas: currentData.reduce((sum, item) => sum + item.concluidas, 0) }
   ];
 
-  const totalVisitas = visitData.reduce((sum, item) => sum + item.visitas, 0);
-  const totalConcluidas = visitData.reduce((sum, item) => sum + item.concluidas, 0);
-  const averageCompletion = (totalConcluidas / totalVisitas) * 100;
+  const totalVisitas = currentData.reduce((sum, item) => sum + item.visitas, 0);
+  const totalConcluidas = currentData.reduce((sum, item) => sum + item.concluidas, 0);
+  const averageCompletion = totalVisitas > 0 ? (totalConcluidas / totalVisitas) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -79,13 +103,28 @@ const Index = () => {
             DASHBOARD DE VISITAS REALIZADAS
           </h1>
           <p className="text-muted-foreground text-lg">
-            Análise Profissional de Performance | Dados de Vendas
+            Análise Profissional de Performance | Dados Integrados com Google Sheets
           </p>
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Calendar className="w-4 h-4" />
-            <span>Atualizado em: 12 de Junho 2024</span>
+            <span>Atualizado em: {new Date().toLocaleDateString('pt-BR')}</span>
+            {data.length > 0 && (
+              <Badge variant="default" className="ml-2">
+                <Database className="w-3 h-3 mr-1" />
+                Conectado ao Google Sheets
+              </Badge>
+            )}
           </div>
         </div>
+
+        {/* Google Sheets Configuration */}
+        <GoogleSheetsConfigComponent
+          config={config}
+          onSaveConfig={saveConfig}
+          onLoadData={loadData}
+          loading={loading}
+          dataCount={data.length}
+        />
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -97,7 +136,7 @@ const Index = () => {
             <CardContent>
               <div className="text-2xl font-bold">{totalVisitas}</div>
               <p className="text-xs text-muted-foreground">
-                +12% vs mês anterior
+                {data.length > 0 ? 'Dados do Google Sheets' : 'Dados de exemplo'}
               </p>
             </CardContent>
           </Card>
@@ -121,7 +160,7 @@ const Index = () => {
               <Users className="h-4 w-4 text-chart-2" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{visitData.length}</div>
+              <div className="text-2xl font-bold">{currentData.length}</div>
               <p className="text-xs text-muted-foreground">
                 Equipe de vendas
               </p>
@@ -144,11 +183,12 @@ const Index = () => {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="promoters">Promotores</TabsTrigger>
             <TabsTrigger value="locations">Localidades</TabsTrigger>
             <TabsTrigger value="brands">Marcas</TabsTrigger>
+            <TabsTrigger value="editor">Editor</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -223,7 +263,7 @@ const Index = () => {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={visitData} layout="horizontal">
+                    <BarChart data={currentData} layout="horizontal">
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
                       <YAxis dataKey="promotor" type="category" width={150} stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -247,7 +287,7 @@ const Index = () => {
                   <CardTitle>Detalhes dos Promotores</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {visitData.map((promoter, index) => (
+                  {currentData.map((promoter, index) => (
                     <div key={index} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">{promoter.promotor}</span>
@@ -337,13 +377,21 @@ const Index = () => {
               ))}
             </div>
           </TabsContent>
+
+          <TabsContent value="editor" className="space-y-6">
+            <DataEditor
+              data={currentData}
+              onUpdateData={updateData}
+              loading={loading}
+            />
+          </TabsContent>
         </Tabs>
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground border-t border-border pt-6">
           <div className="flex items-center justify-center gap-2">
             <Clock className="w-4 h-4" />
-            <span>Dashboard atualizado automaticamente a cada 5 minutos</span>
+            <span>Dashboard sincronizado com Google Sheets</span>
           </div>
         </div>
       </div>
