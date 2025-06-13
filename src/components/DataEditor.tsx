@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Save, Plus, Trash2, Edit3 } from 'lucide-react';
-import { VisitData } from '@/hooks/useGoogleSheets';
+import { VisitData } from '@/types/VisitData';
 
 interface DataEditorProps {
   data: VisitData[];
@@ -42,25 +42,41 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
     const newItem: VisitData = {
       id: (editingData.length + 1).toString(),
       promotor: '',
-      visitas: 0,
-      concluidas: 0,
-      percentual: 0,
+      rede: '',
       cidade: '',
       marca: '',
-      data: new Date().toISOString().split('T')[0]
+      visitasPreDefinidas: 0,
+      visitasRealizadas: 0,
+      percentual: 0,
+      telefone: '',
+      dataInicio: new Date().toISOString().split('T')[0],
+      valorContrato: 0,
+      valorPorVisita: 0,
+      valorPago: 0,
+      datasVisitas: []
     };
     const newData = [...editingData, newItem];
     setEditingData(newData);
     setEditingId(newItem.id);
   };
 
-  const updateField = (id: string, field: keyof VisitData, value: string | number) => {
+  const updateField = (id: string, field: keyof VisitData, value: string | number | string[]) => {
     setEditingData(prev => prev.map(item => {
       if (item.id === id) {
         const updated = { ...item, [field]: value };
-        if (field === 'visitas' || field === 'concluidas') {
-          updated.percentual = updated.visitas > 0 ? (updated.concluidas / updated.visitas) * 100 : 0;
+        
+        // Recalcular campos dependentes
+        if (field === 'visitasPreDefinidas' || field === 'valorContrato') {
+          updated.valorPorVisita = updated.visitasPreDefinidas > 0 ? updated.valorContrato / updated.visitasPreDefinidas : 0;
         }
+        
+        if (field === 'datasVisitas') {
+          updated.visitasRealizadas = updated.datasVisitas.length;
+          updated.percentual = updated.visitasPreDefinidas > 0 ? (updated.visitasRealizadas / updated.visitasPreDefinidas) * 100 : 0;
+        }
+        
+        updated.valorPago = updated.visitasRealizadas * updated.valorPorVisita;
+        
         return updated;
       }
       return item;
@@ -73,7 +89,7 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Edit3 className="w-5 h-5" />
-            Editor de Dados
+            Editor de Dados - Controle Completo
           </div>
           <Button onClick={handleAddNew} size="sm">
             <Plus className="w-4 h-4 mr-2" />
@@ -86,13 +102,16 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Promotor</TableHead>
-                <TableHead>Visitas</TableHead>
-                <TableHead>Concluídas</TableHead>
-                <TableHead>%</TableHead>
+                <TableHead>Promotor/Agência</TableHead>
+                <TableHead>Rede</TableHead>
                 <TableHead>Cidade</TableHead>
                 <TableHead>Marca</TableHead>
-                <TableHead>Data</TableHead>
+                <TableHead>Pré-def.</TableHead>
+                <TableHead>Realiz.</TableHead>
+                <TableHead>%</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Valor Contrato</TableHead>
+                <TableHead>Valor Pago</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -104,7 +123,7 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                       <Input
                         value={item.promotor}
                         onChange={(e) => updateField(item.id, 'promotor', e.target.value)}
-                        className="w-full"
+                        className="w-40"
                       />
                     ) : (
                       <span className="font-medium">{item.promotor}</span>
@@ -113,31 +132,13 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                   <TableCell>
                     {editingId === item.id ? (
                       <Input
-                        type="number"
-                        value={item.visitas}
-                        onChange={(e) => updateField(item.id, 'visitas', parseInt(e.target.value) || 0)}
-                        className="w-20"
+                        value={item.rede}
+                        onChange={(e) => updateField(item.id, 'rede', e.target.value)}
+                        className="w-32"
                       />
                     ) : (
-                      item.visitas
+                      item.rede
                     )}
-                  </TableCell>
-                  <TableCell>
-                    {editingId === item.id ? (
-                      <Input
-                        type="number"
-                        value={item.concluidas}
-                        onChange={(e) => updateField(item.id, 'concluidas', parseInt(e.target.value) || 0)}
-                        className="w-20"
-                      />
-                    ) : (
-                      item.concluidas
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={item.percentual >= 40 ? "default" : "secondary"}>
-                      {item.percentual.toFixed(1)}%
-                    </Badge>
                   </TableCell>
                   <TableCell>
                     {editingId === item.id ? (
@@ -164,14 +165,52 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                   <TableCell>
                     {editingId === item.id ? (
                       <Input
-                        type="date"
-                        value={item.data}
-                        onChange={(e) => updateField(item.id, 'data', e.target.value)}
-                        className="w-36"
+                        type="number"
+                        value={item.visitasPreDefinidas}
+                        onChange={(e) => updateField(item.id, 'visitasPreDefinidas', parseInt(e.target.value) || 0)}
+                        className="w-20"
                       />
                     ) : (
-                      new Date(item.data).toLocaleDateString('pt-BR')
+                      item.visitasPreDefinidas
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={item.visitasRealizadas >= item.visitasPreDefinidas ? "default" : "secondary"}>
+                      {item.visitasRealizadas}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={item.percentual >= 80 ? "default" : item.percentual >= 50 ? "secondary" : "destructive"}>
+                      {item.percentual.toFixed(1)}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        value={item.telefone}
+                        onChange={(e) => updateField(item.id, 'telefone', e.target.value)}
+                        className="w-32"
+                      />
+                    ) : (
+                      item.telefone
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        type="number"
+                        value={item.valorContrato}
+                        onChange={(e) => updateField(item.id, 'valorContrato', parseFloat(e.target.value) || 0)}
+                        className="w-24"
+                      />
+                    ) : (
+                      `R$ ${item.valorContrato.toLocaleString('pt-BR')}`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      R$ {item.valorPago.toLocaleString('pt-BR')}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Settings, Database, RefreshCw } from 'lucide-react';
-import { GoogleSheetsConfig } from '@/hooks/useGoogleSheets';
+import { GoogleSheetsConfig } from '@/types/VisitData';
 
 interface GoogleSheetsConfigProps {
   config: GoogleSheetsConfig | null;
@@ -26,7 +26,7 @@ export const GoogleSheetsConfigComponent = ({
   const [formData, setFormData] = useState({
     apiKey: config?.apiKey || '',
     spreadsheetId: config?.spreadsheetId || '',
-    range: config?.range || 'Dados!A1:G1000'
+    range: config?.range || 'Dados!A1:AZ1000'
   });
 
   const handleSave = () => {
@@ -75,7 +75,7 @@ export const GoogleSheetsConfigComponent = ({
           <Label htmlFor="range">Intervalo (Range)</Label>
           <Input
             id="range"
-            placeholder="Ex: Dados!A1:G1000"
+            placeholder="Ex: Dados!A1:AZ1000"
             value={formData.range}
             onChange={(e) => setFormData({ ...formData, range: e.target.value })}
           />

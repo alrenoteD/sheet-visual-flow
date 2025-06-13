@@ -1,23 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
-
-export interface VisitData {
-  id: string;
-  promotor: string;
-  visitas: number;
-  concluidas: number;
-  percentual: number;
-  cidade: string;
-  marca: string;
-  data: string;
-}
-
-export interface GoogleSheetsConfig {
-  apiKey: string;
-  spreadsheetId: string;
-  range: string;
-}
+import { VisitData, GoogleSheetsConfig } from '@/types/VisitData';
 
 export const useGoogleSheets = () => {
   const [data, setData] = useState<VisitData[]>([]);
@@ -34,6 +18,16 @@ export const useGoogleSheets = () => {
   const saveConfig = (newConfig: GoogleSheetsConfig) => {
     setConfig(newConfig);
     localStorage.setItem('googleSheetsConfig', JSON.stringify(newConfig));
+  };
+
+  const processVisitDates = (row: string[], startIndex: number = 8): { dates: string[], count: number } => {
+    const dates: string[] = [];
+    for (let i = startIndex; i < row.length; i++) {
+      if (row[i] && row[i].trim() !== '') {
+        dates.push(row[i].trim());
+      }
+    }
+    return { dates, count: dates.length };
   };
 
   const loadData = async () => {
@@ -59,16 +53,32 @@ export const useGoogleSheets = () => {
       
       if (result.values && result.values.length > 1) {
         const [headers, ...rows] = result.values;
-        const formattedData: VisitData[] = rows.map((row: string[], index: number) => ({
-          id: (index + 1).toString(),
-          promotor: row[0] || '',
-          visitas: parseInt(row[1]) || 0,
-          concluidas: parseInt(row[2]) || 0,
-          percentual: parseFloat(row[3]) || 0,
-          cidade: row[4] || '',
-          marca: row[5] || '',
-          data: row[6] || new Date().toISOString().split('T')[0]
-        }));
+        const formattedData: VisitData[] = rows.map((row: string[], index: number) => {
+          const visitasPreDefinidas = parseInt(row[4]) || 0;
+          const visitDates = processVisitDates(row, 8);
+          const visitasRealizadas = visitDates.count;
+          const percentual = visitasPreDefinidas > 0 ? (visitasRealizadas / visitasPreDefinidas) * 100 : 0;
+          const valorContrato = parseFloat(row[7]) || 0;
+          const valorPorVisita = visitasPreDefinidas > 0 ? valorContrato / visitasPreDefinidas : 0;
+          const valorPago = visitasRealizadas * valorPorVisita;
+
+          return {
+            id: (index + 1).toString(),
+            promotor: row[0] || '',
+            rede: row[1] || '',
+            cidade: row[2] || '',
+            marca: row[3] || '',
+            visitasPreDefinidas,
+            visitasRealizadas,
+            percentual,
+            telefone: row[5] || '',
+            dataInicio: row[6] || '',
+            valorContrato,
+            valorPorVisita,
+            valorPago,
+            datasVisitas: visitDates.dates
+          };
+        });
         
         setData(formattedData);
         toast({
@@ -93,17 +103,34 @@ export const useGoogleSheets = () => {
 
     setLoading(true);
     try {
+      const maxDates = Math.max(...updatedData.map(item => item.datasVisitas.length));
+      const dateColumns = Math.max(maxDates, 10);
+      
       const values = [
-        ['Promotor', 'Visitas', 'Concluídas', 'Percentual', 'Cidade', 'Marca', 'Data'],
-        ...updatedData.map(item => [
-          item.promotor,
-          item.visitas.toString(),
-          item.concluidas.toString(),
-          item.percentual.toString(),
-          item.cidade,
-          item.marca,
-          item.data
-        ])
+        [
+          'PROMOTOR/AGÊNCIA', 'REDE', 'CIDADE', 'MARCA', 'VISITAS PRÉ-DEFINIDAS', 
+          'TELEFONE', 'DATA INÍCIO', 'VALOR CONTRATO',
+          ...Array.from({length: dateColumns}, (_, i) => `DATA VISITA ${i + 1}`)
+        ],
+        ...updatedData.map(item => {
+          const row = [
+            item.promotor,
+            item.rede,
+            item.cidade,
+            item.marca,
+            item.visitasPreDefinidas.toString(),
+            item.telefone,
+            item.dataInicio,
+            item.valorContrato.toString()
+          ];
+          
+          // Adicionar datas de visitas
+          for (let i = 0; i < dateColumns; i++) {
+            row.push(item.datasVisitas[i] || '');
+          }
+          
+          return row;
+        })
       ];
 
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${config.range}?valueInputOption=RAW&key=${config.apiKey}`;
