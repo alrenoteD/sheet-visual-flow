@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -9,10 +8,15 @@ import { DataEditor } from '@/components/DataEditor';
 import { KPICards } from '@/components/dashboard/KPICards';
 import { PerformanceChart } from '@/components/dashboard/charts/PerformanceChart';
 import { FinancialChart } from '@/components/dashboard/charts/FinancialChart';
+import { MonthlyComplianceChart } from '@/components/dashboard/charts/MonthlyComplianceChart';
+import { DashboardFilters } from '@/components/dashboard/filters/DashboardFilters';
+import { ProfessionalInsights } from '@/components/dashboard/insights/ProfessionalInsights';
+import { MiniChat } from '@/components/dashboard/chat/MiniChat';
 import { VisitData } from '@/types/VisitData';
 
 const Index = () => {
   const { data, loading, config, saveConfig, loadData, updateData } = useGoogleSheets();
+  const [filteredData, setFilteredData] = useState<VisitData[]>([]);
 
   // Dados de exemplo para quando não há dados do Google Sheets
   const fallbackData: VisitData[] = [
@@ -68,6 +72,14 @@ const Index = () => {
 
   const currentData = data.length > 0 ? data : fallbackData;
 
+  useEffect(() => {
+    setFilteredData(currentData);
+  }, [data, fallbackData]);
+
+  const handleFiltersChange = (newFilteredData: VisitData[]) => {
+    setFilteredData(newFilteredData);
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -100,31 +112,51 @@ const Index = () => {
           dataCount={data.length}
         />
 
+        {/* Filtros */}
+        <DashboardFilters data={currentData} onFiltersChange={handleFiltersChange} />
+
         {/* KPI Cards */}
-        <KPICards data={currentData} isConnected={data.length > 0} />
+        <KPICards data={filteredData} isConnected={data.length > 0} />
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="financial">Financeiro</TabsTrigger>
-            <TabsTrigger value="promoters">Promotores</TabsTrigger>
+            <TabsTrigger value="insights">Insights</TabsTrigger>
+            <TabsTrigger value="chat">Assistente</TabsTrigger>
             <TabsTrigger value="editor">Editor</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PerformanceChart data={currentData} />
-              <FinancialChart data={currentData} />
+              <PerformanceChart data={filteredData} />
+              <MonthlyComplianceChart data={filteredData} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <FinancialChart data={filteredData} />
+              <MiniChat data={filteredData} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="performance" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PerformanceChart data={filteredData} />
+              <MonthlyComplianceChart data={filteredData} />
             </div>
           </TabsContent>
 
           <TabsContent value="financial" className="space-y-6">
-            <FinancialChart data={currentData} />
+            <FinancialChart data={filteredData} />
           </TabsContent>
 
-          <TabsContent value="promoters" className="space-y-6">
-            <PerformanceChart data={currentData} />
+          <TabsContent value="insights" className="space-y-6">
+            <ProfessionalInsights data={filteredData} />
+          </TabsContent>
+
+          <TabsContent value="chat" className="space-y-6">
+            <MiniChat data={filteredData} />
           </TabsContent>
 
           <TabsContent value="editor" className="space-y-6">
