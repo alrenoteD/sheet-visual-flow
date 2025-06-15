@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Database, Clock } from 'lucide-react';
+import { Calendar, Clock } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
-import { GoogleSheetsConfigComponent } from '@/components/GoogleSheetsConfig';
+import { ConnectionStatus } from '@/components/dashboard/ConnectionStatus';
 import { DataEditor } from '@/components/DataEditor';
 import { KPICards } from '@/components/dashboard/KPICards';
 import { PerformanceChart } from '@/components/dashboard/charts/PerformanceChart';
@@ -15,66 +16,12 @@ import { MiniChat } from '@/components/dashboard/chat/MiniChat';
 import { VisitData } from '@/types/VisitData';
 
 const Index = () => {
-  const { data, loading, config, saveConfig, loadData, updateData } = useGoogleSheets();
+  const { data, loading, isConnected, loadData, updateData } = useGoogleSheets();
   const [filteredData, setFilteredData] = useState<VisitData[]>([]);
 
-  // Dados de exemplo para quando não há dados do Google Sheets
-  const fallbackData: VisitData[] = [
-    { 
-      id: '1', 
-      promotor: 'CLAUDIA NEGOSKI', 
-      rede: 'SUPERMERCADOS ALFA',
-      cidade: 'LAGUNA', 
-      marca: 'ALBA', 
-      visitasPreDefinidas: 8,
-      visitasRealizadas: 3,
-      percentual: 37.5,
-      telefone: '(48) 99999-1234',
-      dataInicio: '2024-01-15',
-      valorContrato: 2400,
-      valorPorVisita: 300,
-      valorPago: 900,
-      datasVisitas: ['2024-06-01', '2024-06-05', '2024-06-10']
-    },
-    { 
-      id: '2', 
-      promotor: 'NATASHA DOS SANTOS ORTIZ', 
-      rede: 'REDE BETA',
-      cidade: 'BALNEÁRIO CAMBORIÚ', 
-      marca: 'ALFAJOR', 
-      visitasPreDefinidas: 8,
-      visitasRealizadas: 1,
-      percentual: 12.5,
-      telefone: '(47) 88888-5678',
-      dataInicio: '2024-02-01',
-      valorContrato: 3200,
-      valorPorVisita: 400,
-      valorPago: 400,
-      datasVisitas: ['2024-06-12']
-    },
-    { 
-      id: '3', 
-      promotor: 'EMILIANO MARTINS KAISER', 
-      rede: 'DISTRIBUIDORA GAMA',
-      cidade: 'CHAPECÓ', 
-      marca: 'AQUAFAST', 
-      visitasPreDefinidas: 8,
-      visitasRealizadas: 3,
-      percentual: 37.5,
-      telefone: '(49) 77777-9012',
-      dataInicio: '2024-01-20',
-      valorContrato: 2800,
-      valorPorVisita: 350,
-      valorPago: 1050,
-      datasVisitas: ['2024-06-02', '2024-06-08', '2024-06-15']
-    }
-  ];
-
-  const currentData = data.length > 0 ? data : fallbackData;
-
   useEffect(() => {
-    setFilteredData(currentData);
-  }, [data, fallbackData]);
+    setFilteredData(data);
+  }, [data]);
 
   const handleFiltersChange = (newFilteredData: VisitData[]) => {
     setFilteredData(newFilteredData);
@@ -94,79 +41,92 @@ const Index = () => {
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Calendar className="w-4 h-4" />
             <span>Atualizado em: {new Date().toLocaleDateString('pt-BR')}</span>
-            {data.length > 0 && (
+            {isConnected && (
               <Badge variant="default" className="ml-2">
-                <Database className="w-3 h-3 mr-1" />
                 Conectado ao Google Sheets
               </Badge>
             )}
           </div>
         </div>
 
-        {/* Google Sheets Configuration */}
-        <GoogleSheetsConfigComponent
-          config={config}
-          onSaveConfig={saveConfig}
-          onLoadData={loadData}
+        {/* Connection Status */}
+        <ConnectionStatus
+          isConnected={isConnected}
           loading={loading}
           dataCount={data.length}
+          onRefresh={loadData}
         />
 
-        {/* Filtros */}
-        <DashboardFilters data={currentData} onFiltersChange={handleFiltersChange} />
+        {/* Mostrar conteúdo apenas se conectado */}
+        {isConnected && data.length > 0 ? (
+          <>
+            {/* Filtros */}
+            <DashboardFilters data={data} onFiltersChange={handleFiltersChange} />
 
-        {/* KPI Cards */}
-        <KPICards data={filteredData} isConnected={data.length > 0} />
+            {/* KPI Cards */}
+            <KPICards data={filteredData} isConnected={isConnected} />
 
-        {/* Main Dashboard Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="financial">Financeiro</TabsTrigger>
-            <TabsTrigger value="insights">Insights</TabsTrigger>
-            <TabsTrigger value="chat">Assistente</TabsTrigger>
-            <TabsTrigger value="editor">Editor</TabsTrigger>
-          </TabsList>
+            {/* Main Dashboard Tabs */}
+            <Tabs defaultValue="overview" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-6">
+                <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+                <TabsTrigger value="performance">Performance</TabsTrigger>
+                <TabsTrigger value="financial">Financeiro</TabsTrigger>
+                <TabsTrigger value="insights">Insights</TabsTrigger>
+                <TabsTrigger value="chat">Assistente</TabsTrigger>
+                <TabsTrigger value="editor">Editor</TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PerformanceChart data={filteredData} />
-              <MonthlyComplianceChart data={filteredData} />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FinancialChart data={filteredData} />
-              <MiniChat data={filteredData} />
-            </div>
-          </TabsContent>
+              <TabsContent value="overview" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <PerformanceChart data={filteredData} />
+                  <MonthlyComplianceChart data={filteredData} />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <FinancialChart data={filteredData} />
+                  <MiniChat data={filteredData} />
+                </div>
+              </TabsContent>
 
-          <TabsContent value="performance" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PerformanceChart data={filteredData} />
-              <MonthlyComplianceChart data={filteredData} />
-            </div>
-          </TabsContent>
+              <TabsContent value="performance" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <PerformanceChart data={filteredData} />
+                  <MonthlyComplianceChart data={filteredData} />
+                </div>
+              </TabsContent>
 
-          <TabsContent value="financial" className="space-y-6">
-            <FinancialChart data={filteredData} />
-          </TabsContent>
+              <TabsContent value="financial" className="space-y-6">
+                <FinancialChart data={filteredData} />
+              </TabsContent>
 
-          <TabsContent value="insights" className="space-y-6">
-            <ProfessionalInsights data={filteredData} />
-          </TabsContent>
+              <TabsContent value="insights" className="space-y-6">
+                <ProfessionalInsights data={filteredData} />
+              </TabsContent>
 
-          <TabsContent value="chat" className="space-y-6">
-            <MiniChat data={filteredData} />
-          </TabsContent>
+              <TabsContent value="chat" className="space-y-6">
+                <MiniChat data={filteredData} />
+              </TabsContent>
 
-          <TabsContent value="editor" className="space-y-6">
-            <DataEditor
-              data={currentData}
-              onUpdateData={updateData}
-              loading={loading}
-            />
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="editor" className="space-y-6">
+                <DataEditor
+                  data={data}
+                  onUpdateData={updateData}
+                  loading={loading}
+                />
+              </TabsContent>
+            </Tabs>
+          </>
+        ) : (
+          <div className="text-center py-12 space-y-4">
+            <div className="text-6xl opacity-20">📊</div>
+            <h3 className="text-xl font-semibold text-muted-foreground">
+              Aguardando Conexão
+            </h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Configure as variáveis de ambiente no EasyPanel para conectar com sua planilha do Google Sheets e visualizar seus dados.
+            </p>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground border-t border-border pt-6">

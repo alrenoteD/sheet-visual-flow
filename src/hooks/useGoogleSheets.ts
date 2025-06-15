@@ -7,18 +7,20 @@ export const useGoogleSheets = () => {
   const [data, setData] = useState<VisitData[]>([]);
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState<GoogleSheetsConfig | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const savedConfig = localStorage.getItem('googleSheetsConfig');
-    if (savedConfig) {
-      setConfig(JSON.parse(savedConfig));
+    // Verificar se as variáveis de ambiente estão configuradas
+    const apiKey = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY;
+    const spreadsheetId = import.meta.env.VITE_GOOGLE_SHEETS_SPREADSHEET_ID;
+    const range = import.meta.env.VITE_GOOGLE_SHEETS_RANGE || 'Dados!A1:AZ1000';
+
+    if (apiKey && spreadsheetId) {
+      const envConfig = { apiKey, spreadsheetId, range };
+      setConfig(envConfig);
+      loadData(envConfig);
     }
   }, []);
-
-  const saveConfig = (newConfig: GoogleSheetsConfig) => {
-    setConfig(newConfig);
-    localStorage.setItem('googleSheetsConfig', JSON.stringify(newConfig));
-  };
 
   const processVisitDates = (row: string[], startIndex: number = 8): { dates: string[], count: number } => {
     const dates: string[] = [];
@@ -30,19 +32,16 @@ export const useGoogleSheets = () => {
     return { dates, count: dates.length };
   };
 
-  const loadData = async () => {
-    if (!config) {
-      toast({
-        title: "Erro",
-        description: "Configure primeiro a conexão com Google Sheets",
-        variant: "destructive"
-      });
+  const loadData = async (configToUse?: GoogleSheetsConfig) => {
+    const currentConfig = configToUse || config;
+    if (!currentConfig) {
+      console.log('Aguardando configuração das variáveis de ambiente do Google Sheets');
       return;
     }
 
     setLoading(true);
     try {
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${config.range}?key=${config.apiKey}`;
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${currentConfig.spreadsheetId}/values/${currentConfig.range}?key=${currentConfig.apiKey}`;
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -81,6 +80,7 @@ export const useGoogleSheets = () => {
         });
         
         setData(formattedData);
+        setIsConnected(true);
         toast({
           title: "Sucesso",
           description: `${formattedData.length} registros carregados da planilha`
@@ -88,9 +88,10 @@ export const useGoogleSheets = () => {
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
+      setIsConnected(false);
       toast({
-        title: "Erro",
-        description: "Falha ao carregar dados do Google Sheets",
+        title: "Erro de Conexão",
+        description: "Falha ao conectar com Google Sheets. Verifique as variáveis de ambiente.",
         variant: "destructive"
       });
     } finally {
@@ -124,7 +125,6 @@ export const useGoogleSheets = () => {
             item.valorContrato.toString()
           ];
           
-          // Adicionar datas de visitas
           for (let i = 0; i < dateColumns; i++) {
             row.push(item.datasVisitas[i] || '');
           }
@@ -168,8 +168,8 @@ export const useGoogleSheets = () => {
     data,
     loading,
     config,
-    saveConfig,
-    loadData,
+    isConnected,
+    loadData: () => loadData(),
     updateData
   };
 };
