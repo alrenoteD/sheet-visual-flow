@@ -43,13 +43,31 @@ exec('npm run build', (buildError, buildStdout, buildStderr) => {
   
   // Serve the built files
   console.log('🌐 Starting server...');
-  exec(`npx serve -s dist -l ${PORT}`, (serveError, serveStdout, serveStderr) => {
+  const serveProcess = exec(`npx serve -s dist -l ${PORT}`, (serveError, serveStdout, serveStderr) => {
     if (serveError) {
       console.error('❌ Server failed to start:', serveError);
       process.exit(1);
     }
-    
+  });
+  
+  // Log server startup
+  serveProcess.stdout.on('data', (data) => {
     console.log(`✅ Dashboard running on port ${PORT}`);
     console.log(`🔗 Access: http://localhost:${PORT}`);
   });
+  
+  serveProcess.stderr.on('data', (data) => {
+    console.error('Server error:', data);
+  });
+});
+
+// Handle process termination gracefully
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM, shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 Received SIGINT, shutting down gracefully...');
+  process.exit(0);
 });
