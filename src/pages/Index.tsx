@@ -10,6 +10,9 @@ import { KPICards } from '@/components/dashboard/KPICards';
 import { PerformanceChart } from '@/components/dashboard/charts/PerformanceChart';
 import { FinancialChart } from '@/components/dashboard/charts/FinancialChart';
 import { MonthlyComplianceChart } from '@/components/dashboard/charts/MonthlyComplianceChart';
+import { CityPerformanceChart } from '@/components/dashboard/charts/CityPerformanceChart';
+import { BrandDistributionChart } from '@/components/dashboard/charts/BrandDistributionChart';
+import { PromoterRankingChart } from '@/components/dashboard/charts/PromoterRankingChart';
 import { DashboardFilters } from '@/components/dashboard/filters/DashboardFilters';
 import { ProfessionalInsights } from '@/components/dashboard/insights/ProfessionalInsights';
 import { MiniChat } from '@/components/dashboard/chat/MiniChat';
@@ -68,9 +71,11 @@ const Index = () => {
 
             {/* Main Dashboard Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-8">
                 <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
+                <TabsTrigger value="analytics">Análises</TabsTrigger>
+                <TabsTrigger value="ranking">Rankings</TabsTrigger>
                 <TabsTrigger value="financial">Financeiro</TabsTrigger>
                 <TabsTrigger value="insights">Insights</TabsTrigger>
                 <TabsTrigger value="chat">Assistente</TabsTrigger>
@@ -93,6 +98,17 @@ const Index = () => {
                   <PerformanceChart data={filteredData} />
                   <MonthlyComplianceChart data={filteredData} />
                 </div>
+              </TabsContent>
+
+              <TabsContent value="analytics" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <CityPerformanceChart data={filteredData} />
+                  <BrandDistributionChart data={filteredData} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="ranking" className="space-y-6">
+                <PromoterRankingChart data={filteredData} />
               </TabsContent>
 
               <TabsContent value="financial" className="space-y-6">

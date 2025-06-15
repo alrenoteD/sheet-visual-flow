@@ -1,7 +1,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Database, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Database, Wifi, WifiOff, RefreshCw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ConnectionStatusProps {
@@ -17,6 +17,16 @@ export const ConnectionStatus = ({
   dataCount, 
   onRefresh 
 }: ConnectionStatusProps) => {
+  // Verificar variáveis de ambiente
+  const apiKey = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY;
+  const spreadsheetId = import.meta.env.VITE_GOOGLE_SHEETS_SPREADSHEET_ID;
+  const range = import.meta.env.VITE_GOOGLE_SHEETS_RANGE;
+  const chatbotUrl = import.meta.env.VITE_CHATBOT_WEBHOOK_URL;
+
+  const missingCredentials = [];
+  if (!apiKey) missingCredentials.push('VITE_GOOGLE_SHEETS_API_KEY');
+  if (!spreadsheetId) missingCredentials.push('VITE_GOOGLE_SHEETS_SPREADSHEET_ID');
+
   return (
     <Card className={`border-2 ${isConnected ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
       <CardHeader>
@@ -53,15 +63,64 @@ export const ConnectionStatus = ({
             </Button>
           </div>
         ) : (
-          <div className="space-y-2">
-            <p className="text-sm text-amber-700">
-              ⚠️ Configure as variáveis de ambiente no EasyPanel:
-            </p>
-            <ul className="text-xs text-muted-foreground space-y-1 ml-4">
-              <li>• VITE_GOOGLE_SHEETS_API_KEY</li>
-              <li>• VITE_GOOGLE_SHEETS_SPREADSHEET_ID</li>
-              <li>• VITE_GOOGLE_SHEETS_RANGE (opcional)</li>
-            </ul>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm text-amber-700 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                Status das Credenciais:
+              </p>
+              
+              <div className="space-y-1 ml-6">
+                <div className="flex items-center gap-2 text-xs">
+                  {apiKey ? (
+                    <CheckCircle className="w-3 h-3 text-green-600" />
+                  ) : (
+                    <XCircle className="w-3 h-3 text-red-600" />
+                  )}
+                  <span>VITE_GOOGLE_SHEETS_API_KEY</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-xs">
+                  {spreadsheetId ? (
+                    <CheckCircle className="w-3 h-3 text-green-600" />
+                  ) : (
+                    <XCircle className="w-3 h-3 text-red-600" />
+                  )}
+                  <span>VITE_GOOGLE_SHEETS_SPREADSHEET_ID</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-xs">
+                  {range ? (
+                    <CheckCircle className="w-3 h-3 text-green-600" />
+                  ) : (
+                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+                  )}
+                  <span>VITE_GOOGLE_SHEETS_RANGE (opcional)</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-xs">
+                  {chatbotUrl ? (
+                    <CheckCircle className="w-3 h-3 text-green-600" />
+                  ) : (
+                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+                  )}
+                  <span>VITE_CHATBOT_WEBHOOK_URL (opcional)</span>
+                </div>
+              </div>
+            </div>
+            
+            {missingCredentials.length > 0 && (
+              <div className="p-3 bg-amber-100 rounded-lg border border-amber-200">
+                <p className="text-sm text-amber-800 font-medium">
+                  ⚠️ Configure no EasyPanel:
+                </p>
+                <ul className="text-xs text-amber-700 mt-1 space-y-1">
+                  {missingCredentials.map(cred => (
+                    <li key={cred}>• {cred}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

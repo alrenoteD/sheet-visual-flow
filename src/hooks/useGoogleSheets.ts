@@ -15,10 +15,29 @@ export const useGoogleSheets = () => {
     const spreadsheetId = import.meta.env.VITE_GOOGLE_SHEETS_SPREADSHEET_ID;
     const range = import.meta.env.VITE_GOOGLE_SHEETS_RANGE || 'Dados!A1:AZ1000';
 
+    console.log('🔍 Verificando configurações do Google Sheets...');
+    
+    if (!apiKey) {
+      console.warn('⚠️ VITE_GOOGLE_SHEETS_API_KEY não configurada');
+    } else {
+      console.log('✅ VITE_GOOGLE_SHEETS_API_KEY configurada');
+    }
+    
+    if (!spreadsheetId) {
+      console.warn('⚠️ VITE_GOOGLE_SHEETS_SPREADSHEET_ID não configurada');
+    } else {
+      console.log('✅ VITE_GOOGLE_SHEETS_SPREADSHEET_ID configurada');
+    }
+
     if (apiKey && spreadsheetId) {
       const envConfig = { apiKey, spreadsheetId, range };
       setConfig(envConfig);
+      console.log('🚀 Iniciando conexão com Google Sheets...');
       loadData(envConfig);
+    } else {
+      console.log('❌ Configuração incompleta - aguardando variáveis de ambiente');
+      setIsConnected(false);
+      setData([]);
     }
   }, []);
 
@@ -35,23 +54,30 @@ export const useGoogleSheets = () => {
   const loadData = async (configToUse?: GoogleSheetsConfig) => {
     const currentConfig = configToUse || config;
     if (!currentConfig) {
-      console.log('Aguardando configuração das variáveis de ambiente do Google Sheets');
+      console.log('⏳ Aguardando configuração das variáveis de ambiente do Google Sheets');
       return;
     }
 
     setLoading(true);
+    console.log('📊 Carregando dados da planilha...');
+    
     try {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${currentConfig.spreadsheetId}/values/${currentConfig.range}?key=${currentConfig.apiKey}`;
       const response = await fetch(url);
       
       if (!response.ok) {
+        console.error('❌ Erro na requisição:', response.status, response.statusText);
         throw new Error(`Erro ao carregar dados: ${response.statusText}`);
       }
 
       const result = await response.json();
+      console.log('📥 Resposta da API recebida:', result);
       
       if (result.values && result.values.length > 1) {
         const [headers, ...rows] = result.values;
+        console.log('📋 Headers encontrados:', headers);
+        console.log('📊 Linhas de dados:', rows.length);
+        
         const formattedData: VisitData[] = rows.map((row: string[], index: number) => {
           const visitasPreDefinidas = parseInt(row[4]) || 0;
           const visitDates = processVisitDates(row, 8);
@@ -81,14 +107,22 @@ export const useGoogleSheets = () => {
         
         setData(formattedData);
         setIsConnected(true);
+        console.log('✅ Dados carregados com sucesso:', formattedData.length, 'registros');
+        
         toast({
           title: "Sucesso",
           description: `${formattedData.length} registros carregados da planilha`
         });
+      } else {
+        console.warn('⚠️ Nenhum dado encontrado na planilha');
+        setData([]);
+        setIsConnected(false);
       }
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('❌ Erro ao carregar dados:', error);
       setIsConnected(false);
+      setData([]);
+      
       toast({
         title: "Erro de Conexão",
         description: "Falha ao conectar com Google Sheets. Verifique as variáveis de ambiente.",

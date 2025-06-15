@@ -1,11 +1,20 @@
 
 # Configuração de Variáveis de Ambiente no EasyPanel
 
-Este documento explica como configurar as variáveis de ambiente necessárias para conectar o Dashboard com Google Sheets e o assistente inteligente via N8N.
+Este documento explica como configurar as variáveis de ambiente necessárias para conectar o Dashboard com Google Sheets e o assistente inteligente via webhook.
+
+## ⚠️ Importante: Logs Detalhados
+
+O dashboard agora inclui logs detalhados que identificam exatamente quais credenciais estão faltando:
+
+- ✅ **Configurada**: Variável definida corretamente
+- ❌ **Faltando**: Variável não configurada (obrigatória)
+- ⚠️ **Opcional**: Variável não configurada (funcionalidade reduzida)
 
 ## Variáveis Obrigatórias para Google Sheets
 
 ### 1. VITE_GOOGLE_SHEETS_API_KEY
+- **Status**: ❌ **OBRIGATÓRIA**
 - **Descrição**: Chave da API do Google Sheets
 - **Como obter**:
   1. Acesse [Google Cloud Console](https://console.cloud.google.com/)
@@ -17,6 +26,7 @@ Este documento explica como configurar as variáveis de ambiente necessárias pa
   7. Copie a chave gerada
 
 ### 2. VITE_GOOGLE_SHEETS_SPREADSHEET_ID
+- **Status**: ❌ **OBRIGATÓRIA**
 - **Descrição**: ID da planilha Google Sheets
 - **Como obter**:
   1. Abra sua planilha no Google Sheets
@@ -24,17 +34,20 @@ Este documento explica como configurar as variáveis de ambiente necessárias pa
   3. Exemplo: Se a URL for `https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit`
   4. O ID é: `1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms`
 
-### 3. VITE_GOOGLE_SHEETS_RANGE (Opcional)
+## Variáveis Opcionais
+
+### 3. VITE_GOOGLE_SHEETS_RANGE
+- **Status**: ⚠️ **OPCIONAL**
 - **Descrição**: Intervalo de células da planilha
 - **Valor padrão**: `Dados!A1:AZ1000`
 - **Exemplo**: `Dados!A1:AZ1000` ou `Planilha1!A1:Z500`
 
-## Variáveis Opcionais para Assistente Inteligente
-
 ### 4. VITE_CHATBOT_WEBHOOK_URL
-- **Descrição**: URL do webhook do N8N para o chatbot
+- **Status**: ⚠️ **OPCIONAL** (mas recomendada)
+- **Descrição**: URL do webhook para comunicação com chatbot
 - **Exemplo**: `https://seu-n8n.com/webhook/dashboard-chat`
-- **Benefício**: Habilita o assistente inteligente com análises avançadas
+- **Benefício**: Habilita assistente inteligente com análises avançadas
+- **Sem esta variável**: Chat funcionará em modo local básico
 
 ## Como Configurar no EasyPanel
 
@@ -46,23 +59,50 @@ Este documento explica como configurar as variáveis de ambiente necessárias pa
 ### Passo 2: Adicionar as Variáveis
 Para cada variável, clique em "Add Variable" ou equivalente e adicione:
 
-```
-Nome: VITE_GOOGLE_SHEETS_API_KEY
-Valor: sua_api_key_aqui
+```env
+# OBRIGATÓRIAS
+VITE_GOOGLE_SHEETS_API_KEY=sua_api_key_aqui
+VITE_GOOGLE_SHEETS_SPREADSHEET_ID=seu_spreadsheet_id_aqui
 
-Nome: VITE_GOOGLE_SHEETS_SPREADSHEET_ID  
-Valor: seu_spreadsheet_id_aqui
-
-Nome: VITE_GOOGLE_SHEETS_RANGE
-Valor: Dados!A1:AZ1000
-
-Nome: VITE_CHATBOT_WEBHOOK_URL
-Valor: https://seu-n8n.com/webhook/dashboard-chat
+# OPCIONAIS
+VITE_GOOGLE_SHEETS_RANGE=Dados!A1:AZ1000
+VITE_CHATBOT_WEBHOOK_URL=https://seu-webhook.com/chat
 ```
 
 ### Passo 3: Reiniciar a Aplicação
 1. Salve as configurações
 2. Reinicie/redeploy a aplicação para aplicar as mudanças
+
+## Verificação da Configuração
+
+### No Console do Browser:
+O dashboard registra automaticamente o status das configurações:
+
+```
+🔍 Verificando configurações do Google Sheets...
+✅ VITE_GOOGLE_SHEETS_API_KEY configurada
+✅ VITE_GOOGLE_SHEETS_SPREADSHEET_ID configurada
+✅ VITE_GOOGLE_SHEETS_RANGE configurada
+⚠️ VITE_CHATBOT_WEBHOOK_URL não configurada
+🚀 Iniciando conexão com Google Sheets...
+📊 Carregando dados da planilha...
+📥 Resposta da API recebida: {...}
+✅ Dados carregados com sucesso: 25 registros
+```
+
+### Na Interface:
+1. ✅ **Conectado**: Badge verde "Conectado" aparece no dashboard
+2. ✅ **Dados Carregados**: KPIs e gráficos mostram dados da planilha
+3. ✅ **Assistente Ativo**: Badge "N8N Conectado" no chat (se webhook configurado)
+4. ⚠️ **Modo Local**: Badge "Modo Local" no chat (sem webhook)
+
+## Status das Credenciais na Interface
+
+O componente de status mostra o estado de cada variável:
+
+- 🟢 **Checkmark Verde**: Variável configurada
+- 🔴 **X Vermelho**: Variável obrigatória faltando
+- 🟡 **Triângulo Amarelo**: Variável opcional não configurada
 
 ## Estrutura da Planilha Google Sheets
 
@@ -79,46 +119,64 @@ Certifique-se de que sua planilha tenha a seguinte estrutura na aba "Dados":
 3. Altere para "Qualquer pessoa com o link pode visualizar"
 4. Clique em "Concluído"
 
-## Verificação da Configuração
-
-Após configurar as variáveis e reiniciar a aplicação:
-
-1. ✅ **Conectado**: Badge verde "Conectado" aparece no dashboard
-2. ✅ **Dados Carregados**: KPIs e gráficos mostram dados da planilha
-3. ✅ **Assistente Ativo**: Badge "N8N Conectado" no chat (se configurado)
-
 ## Solução de Problemas
 
-### Erro: "Falha ao conectar com Google Sheets"
+### ❌ Erro: "Falha ao conectar com Google Sheets"
+**Verificar nos logs:**
+```
+❌ Erro ao carregar dados: Error: Erro ao carregar dados: 403 Forbidden
+```
+
+**Soluções:**
 1. Verifique se a API Key está correta
 2. Confirme se o Spreadsheet ID está correto
 3. Verifique se a planilha está compartilhada publicamente
 4. Confirme se a Google Sheets API está habilitada no Google Cloud
 
-### Dashboard mostra "Aguardando Conexão"
+### ⏳ Dashboard mostra "Aguardando Conexão"
+**Verificar nos logs:**
+```
+⚠️ VITE_GOOGLE_SHEETS_API_KEY não configurada
+⚠️ VITE_GOOGLE_SHEETS_SPREADSHEET_ID não configurada
+❌ Configuração incompleta - aguardando variáveis de ambiente
+```
+
+**Soluções:**
 1. Verifique se as variáveis de ambiente foram salvas corretamente
 2. Certifique-se de que reiniciou a aplicação após adicionar as variáveis
 3. Verifique se os nomes das variáveis estão corretos (incluindo o prefixo VITE_)
 
-### Assistente não responde adequadamente
-1. Verifique se VITE_CHATBOT_WEBHOOK_URL está configurada
-2. Teste se o webhook do N8N está funcionando
-3. Verifique os logs do N8N para erros
+### 🤖 Assistente não responde adequadamente
+**Verificar nos logs:**
+```
+💭 Assistente funcionará em modo local (configure VITE_CHATBOT_WEBHOOK_URL para N8N)
+```
 
-## Segurança
-
-- **Nunca** compartilhe suas API Keys publicamente
-- Use permissões mínimas necessárias na Google Cloud
-- Configure rate limiting no N8N se necessário
-- Monitore o uso das APIs para evitar custos excessivos
+**Soluções:**
+1. Configure VITE_CHATBOT_WEBHOOK_URL se desejar assistente inteligente
+2. Teste se o webhook está funcionando
+3. Verifique os logs do serviço de webhook (N8N, Zapier, etc.)
 
 ## Exemplo de Configuração Completa
 
 ```env
+# Configuração mínima (obrigatória)
+VITE_GOOGLE_SHEETS_API_KEY=AIzaSyBOti4mM-6x9WDnZIjIeyYU24O6BZMxVis
+VITE_GOOGLE_SHEETS_SPREADSHEET_ID=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms
+
+# Configuração completa (recomendada)
 VITE_GOOGLE_SHEETS_API_KEY=AIzaSyBOti4mM-6x9WDnZIjIeyYU24O6BZMxVis
 VITE_GOOGLE_SHEETS_SPREADSHEET_ID=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms
 VITE_GOOGLE_SHEETS_RANGE=Dados!A1:AZ1000
 VITE_CHATBOT_WEBHOOK_URL=https://meu-n8n.com/webhook/dashboard-chat
 ```
+
+## Monitoramento e Logs
+
+Para acompanhar o funcionamento:
+1. Abra o Console do Browser (F12)
+2. Vá para a aba "Console"
+3. Recarregue a página
+4. Acompanhe as mensagens de status
 
 Após a configuração correta, o dashboard se conectará automaticamente à sua planilha e exibirá todos os dados e funcionalidades disponíveis.
