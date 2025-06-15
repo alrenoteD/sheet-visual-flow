@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Save, Plus, Trash2, Edit3 } from 'lucide-react';
 import { VisitData } from '@/types/VisitData';
+import { VisitDatesEditor } from './VisitDatesEditor';
 
 interface DataEditorProps {
   data: VisitData[];
@@ -17,6 +18,11 @@ interface DataEditorProps {
 export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => {
   const [editingData, setEditingData] = useState<VisitData[]>(data);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Atualizar editingData quando data mudar
+  useState(() => {
+    setEditingData(data);
+  });
 
   const handleEdit = (id: string) => {
     setEditingId(id);
@@ -40,7 +46,7 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
 
   const handleAddNew = () => {
     const newItem: VisitData = {
-      id: (editingData.length + 1).toString(),
+      id: Date.now().toString(), // Usar timestamp para ID único
       promotor: '',
       rede: '',
       cidade: '',
@@ -83,6 +89,10 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
     }));
   };
 
+  const updateVisitDates = (id: string, newDates: string[]) => {
+    updateField(id, 'datasVisitas', newDates);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -98,6 +108,13 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
         </CardTitle>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 p-3 bg-muted rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            💡 <strong>Promotores consolidados:</strong> Registros com nomes idênticos são tratados como a mesma pessoa.
+            Edite as datas de visitas clicando no botão de visitas.
+          </p>
+        </div>
+        
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -112,6 +129,7 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                 <TableHead>Telefone</TableHead>
                 <TableHead>Valor Contrato</TableHead>
                 <TableHead>Valor Pago</TableHead>
+                <TableHead>Visitas</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -124,6 +142,7 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                         value={item.promotor}
                         onChange={(e) => updateField(item.id, 'promotor', e.target.value)}
                         className="w-40"
+                        placeholder="Nome do promotor"
                       />
                     ) : (
                       <span className="font-medium">{item.promotor}</span>
@@ -135,6 +154,7 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                         value={item.rede}
                         onChange={(e) => updateField(item.id, 'rede', e.target.value)}
                         className="w-32"
+                        placeholder="Rede"
                       />
                     ) : (
                       item.rede
@@ -146,6 +166,7 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                         value={item.cidade}
                         onChange={(e) => updateField(item.id, 'cidade', e.target.value)}
                         className="w-32"
+                        placeholder="Cidade"
                       />
                     ) : (
                       item.cidade
@@ -157,6 +178,7 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                         value={item.marca}
                         onChange={(e) => updateField(item.id, 'marca', e.target.value)}
                         className="w-24"
+                        placeholder="Marca"
                       />
                     ) : (
                       item.marca
@@ -169,6 +191,7 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                         value={item.visitasPreDefinidas}
                         onChange={(e) => updateField(item.id, 'visitasPreDefinidas', parseInt(e.target.value) || 0)}
                         className="w-20"
+                        min="0"
                       />
                     ) : (
                       item.visitasPreDefinidas
@@ -190,6 +213,7 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                         value={item.telefone}
                         onChange={(e) => updateField(item.id, 'telefone', e.target.value)}
                         className="w-32"
+                        placeholder="Telefone"
                       />
                     ) : (
                       item.telefone
@@ -201,7 +225,9 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                         type="number"
                         value={item.valorContrato}
                         onChange={(e) => updateField(item.id, 'valorContrato', parseFloat(e.target.value) || 0)}
-                        className="w-24"
+                        className="w-32"
+                        min="0"
+                        step="0.01"
                       />
                     ) : (
                       `R$ ${item.valorContrato.toLocaleString('pt-BR')}`
@@ -211,6 +237,13 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
                     <Badge variant="outline">
                       R$ {item.valorPago.toLocaleString('pt-BR')}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <VisitDatesEditor
+                      dates={item.datasVisitas}
+                      onDatesChange={(newDates) => updateVisitDates(item.id, newDates)}
+                      promotorName={item.promotor}
+                    />
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
@@ -240,6 +273,12 @@ export const DataEditor = ({ data, onUpdateData, loading }: DataEditorProps) => 
             </TableBody>
           </Table>
         </div>
+        
+        {editingData.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Nenhum promotor encontrado. Clique em "Adicionar" para criar o primeiro registro.</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

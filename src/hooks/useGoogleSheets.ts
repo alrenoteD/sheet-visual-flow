@@ -18,13 +18,15 @@ export const useGoogleSheets = () => {
     console.log('🔍 Verificando configurações do Google Sheets...');
     
     if (!apiKey) {
-      console.warn('⚠️ VITE_GOOGLE_SHEETS_API_KEY não configurada');
+      console.warn('⚠️ VITE_GOOGLE_SHEETS_API_KEY não configurada nas variáveis de ambiente');
+      console.log('📋 Configure no EasyPanel: Variáveis de Ambiente > VITE_GOOGLE_SHEETS_API_KEY');
     } else {
       console.log('✅ VITE_GOOGLE_SHEETS_API_KEY configurada');
     }
     
     if (!spreadsheetId) {
-      console.warn('⚠️ VITE_GOOGLE_SHEETS_SPREADSHEET_ID não configurada');
+      console.warn('⚠️ VITE_GOOGLE_SHEETS_SPREADSHEET_ID não configurada nas variáveis de ambiente');
+      console.log('📋 Configure no EasyPanel: Variáveis de Ambiente > VITE_GOOGLE_SHEETS_SPREADSHEET_ID');
     } else {
       console.log('✅ VITE_GOOGLE_SHEETS_SPREADSHEET_ID configurada');
     }
@@ -35,7 +37,8 @@ export const useGoogleSheets = () => {
       console.log('🚀 Iniciando conexão com Google Sheets...');
       loadData(envConfig);
     } else {
-      console.log('❌ Configuração incompleta - aguardando variáveis de ambiente');
+      console.log('❌ Configuração incompleta - Dashboard aguardando variáveis de ambiente');
+      console.log('📖 Consulte: public/CONFIGURACAO_EASYPANEL.md para instruções');
       setIsConnected(false);
       setData([]);
     }
@@ -49,6 +52,50 @@ export const useGoogleSheets = () => {
       }
     }
     return { dates, count: dates.length };
+  };
+
+  const consolidatePromoters = (rawData: VisitData[]): VisitData[] => {
+    const consolidatedMap = new Map<string, VisitData>();
+
+    rawData.forEach((item) => {
+      const promotorKey = item.promotor.trim().toLowerCase();
+      
+      if (consolidatedMap.has(promotorKey)) {
+        // Promotor já existe - consolidar dados
+        const existing = consolidatedMap.get(promotorKey)!;
+        
+        // Combinar visitas
+        existing.visitasPreDefinidas += item.visitasPreDefinidas;
+        existing.valorContrato += item.valorContrato;
+        
+        // Combinar datas de visitas (evitando duplicatas)
+        const allDates = [...existing.datasVisitas, ...item.datasVisitas];
+        existing.datasVisitas = [...new Set(allDates)].sort();
+        existing.visitasRealizadas = existing.datasVisitas.length;
+        
+        // Recalcular percentual e valores
+        existing.percentual = existing.visitasPreDefinidas > 0 
+          ? (existing.visitasRealizadas / existing.visitasPreDefinidas) * 100 
+          : 0;
+        existing.valorPorVisita = existing.visitasPreDefinidas > 0 
+          ? existing.valorContrato / existing.visitasPreDefinidas 
+          : 0;
+        existing.valorPago = existing.visitasRealizadas * existing.valorPorVisita;
+        
+        // Manter outras informações do primeiro registro ou atualizar
+        if (!existing.telefone && item.telefone) existing.telefone = item.telefone;
+        if (!existing.rede && item.rede) existing.rede = item.rede;
+        if (!existing.cidade && item.cidade) existing.cidade = item.cidade;
+        if (!existing.marca && item.marca) existing.marca = item.marca;
+        
+        console.log(`🔄 Consolidado promotor: ${item.promotor} (${existing.visitasRealizadas} visitas)`);
+      } else {
+        // Novo promotor
+        consolidatedMap.set(promotorKey, { ...item });
+      }
+    });
+
+    return Array.from(consolidatedMap.values());
   };
 
   const loadData = async (configToUse?: GoogleSheetsConfig) => {
@@ -66,19 +113,19 @@ export const useGoogleSheets = () => {
       const response = await fetch(url);
       
       if (!response.ok) {
-        console.error('❌ Erro na requisição:', response.status, response.statusText);
+        console.error('❌ Erro na requisição Google Sheets:', response.status, response.statusText);
         throw new Error(`Erro ao carregar dados: ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('📥 Resposta da API recebida:', result);
+      console.log('📥 Resposta da API Google Sheets recebida:', result);
       
       if (result.values && result.values.length > 1) {
         const [headers, ...rows] = result.values;
         console.log('📋 Headers encontrados:', headers);
-        console.log('📊 Linhas de dados:', rows.length);
+        console.log('📊 Linhas de dados brutos:', rows.length);
         
-        const formattedData: VisitData[] = rows.map((row: string[], index: number) => {
+        const rawData: VisitData[] = rows.map((row: string[], index: number) => {
           const visitasPreDefinidas = parseInt(row[4]) || 0;
           const visitDates = processVisitDates(row, 8);
           const visitasRealizadas = visitDates.count;
@@ -105,21 +152,30 @@ export const useGoogleSheets = () => {
           };
         });
         
-        setData(formattedData);
+        // Consolidar promotores com nomes idênticos
+        const consolidatedData = consolidatePromoters(rawData);
+        
+        setData(consolidatedData);
         setIsConnected(true);
-        console.log('✅ Dados carregados com sucesso:', formattedData.length, 'registros');
+        console.log(`✅ Dados carregados e consolidados com sucesso: ${consolidatedData.length} promotores únicos (${rawData.length} registros originais)`);
         
         toast({
-          title: "Sucesso",
-          description: `${formattedData.length} registros carregados da planilha`
+          title: "Conexão Estabelecida",
+          description: `${consolidatedData.length} promotores carregados (${rawData.length} registros consolidados)`
         });
       } else {
-        console.warn('⚠️ Nenhum dado encontrado na planilha');
+        console.warn('⚠️ Nenhum dado encontrado na planilha ou planilha vazia');
         setData([]);
         setIsConnected(false);
+        
+        toast({
+          title: "Planilha Vazia",
+          description: "Nenhum dado encontrado na planilha configurada",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      console.error('❌ Erro ao carregar dados:', error);
+      console.error('❌ Erro ao carregar dados do Google Sheets:', error);
       setIsConnected(false);
       setData([]);
       
@@ -134,38 +190,57 @@ export const useGoogleSheets = () => {
   };
 
   const updateData = async (updatedData: VisitData[]) => {
-    if (!config) return;
+    if (!config) {
+      console.error('❌ Configuração do Google Sheets não disponível para atualização');
+      toast({
+        title: "Erro de Configuração",
+        description: "Configuração do Google Sheets não encontrada",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setLoading(true);
+    console.log('💾 Iniciando atualização da planilha...');
+    
     try {
-      const maxDates = Math.max(...updatedData.map(item => item.datasVisitas.length));
-      const dateColumns = Math.max(maxDates, 10);
+      // Expandir dados consolidados de volta para linhas individuais
+      const expandedData: any[] = [];
       
+      updatedData.forEach(item => {
+        // Para cada promotor, criar uma linha na planilha
+        // Se houver múltiplas visitas, todas vão na mesma linha
+        const maxDates = Math.max(item.datasVisitas.length, 1);
+        
+        const row = [
+          item.promotor,
+          item.rede,
+          item.cidade,
+          item.marca,
+          item.visitasPreDefinidas.toString(),
+          item.telefone,
+          item.dataInicio,
+          item.valorContrato.toString()
+        ];
+        
+        // Adicionar todas as datas de visita
+        for (let i = 0; i < 50; i++) { // Reservar 50 colunas para datas
+          row.push(item.datasVisitas[i] || '');
+        }
+        
+        expandedData.push(row);
+      });
+
       const values = [
         [
           'PROMOTOR/AGÊNCIA', 'REDE', 'CIDADE', 'MARCA', 'VISITAS PRÉ-DEFINIDAS', 
           'TELEFONE', 'DATA INÍCIO', 'VALOR CONTRATO',
-          ...Array.from({length: dateColumns}, (_, i) => `DATA VISITA ${i + 1}`)
+          ...Array.from({length: 50}, (_, i) => `DATA VISITA ${i + 1}`)
         ],
-        ...updatedData.map(item => {
-          const row = [
-            item.promotor,
-            item.rede,
-            item.cidade,
-            item.marca,
-            item.visitasPreDefinidas.toString(),
-            item.telefone,
-            item.dataInicio,
-            item.valorContrato.toString()
-          ];
-          
-          for (let i = 0; i < dateColumns; i++) {
-            row.push(item.datasVisitas[i] || '');
-          }
-          
-          return row;
-        })
+        ...expandedData
       ];
+
+      console.log('📤 Enviando dados para Google Sheets...', values.length, 'linhas');
 
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${config.range}?valueInputOption=RAW&key=${config.apiKey}`;
       
@@ -178,18 +253,20 @@ export const useGoogleSheets = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Falha ao atualizar dados');
+        throw new Error(`Falha ao atualizar dados: ${response.statusText}`);
       }
 
       setData(updatedData);
+      console.log('✅ Planilha atualizada com sucesso');
+      
       toast({
         title: "Sucesso",
-        description: "Dados atualizados na planilha"
+        description: "Dados salvos na planilha do Google Sheets"
       });
     } catch (error) {
-      console.error('Erro ao atualizar dados:', error);
+      console.error('❌ Erro ao atualizar dados na planilha:', error);
       toast({
-        title: "Erro",
+        title: "Erro ao Salvar",
         description: "Falha ao atualizar dados no Google Sheets",
         variant: "destructive"
       });
