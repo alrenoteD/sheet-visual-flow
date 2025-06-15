@@ -16,10 +16,21 @@ import { PromoterRankingChart } from '@/components/dashboard/charts/PromoterRank
 import { DashboardFilters } from '@/components/dashboard/filters/DashboardFilters';
 import { ProfessionalInsights } from '@/components/dashboard/insights/ProfessionalInsights';
 import { MiniChat } from '@/components/dashboard/chat/MiniChat';
+import { MonthSelector } from '@/components/dashboard/MonthSelector';
 import { VisitData } from '@/types/VisitData';
 
 const Index = () => {
-  const { data, loading, isConnected, loadData, updateData } = useGoogleSheets();
+  const { 
+    data, 
+    loading, 
+    isConnected, 
+    loadData, 
+    updateData, 
+    currentMonth, 
+    availableMonths, 
+    changeMonth,
+    getUniquePromoters 
+  } = useGoogleSheets();
   const [filteredData, setFilteredData] = useState<VisitData[]>([]);
 
   useEffect(() => {
@@ -61,13 +72,28 @@ const Index = () => {
         />
 
         {/* Mostrar conteúdo apenas se conectado */}
-        {isConnected && data.length > 0 ? (
+        {isConnected ? (
           <>
+            {/* Seletor de Mês e Downloads */}
+            <MonthSelector
+              currentMonth={currentMonth}
+              availableMonths={availableMonths}
+              onMonthChange={changeMonth}
+              data={data}
+              getUniquePromoters={getUniquePromoters}
+            />
+
             {/* Filtros */}
-            <DashboardFilters data={data} onFiltersChange={handleFiltersChange} />
+            {data.length > 0 && (
+              <DashboardFilters data={data} onFiltersChange={handleFiltersChange} />
+            )}
 
             {/* KPI Cards */}
-            <KPICards data={filteredData} isConnected={isConnected} />
+            <KPICards 
+              data={filteredData} 
+              isConnected={isConnected}
+              getUniquePromoters={getUniquePromoters}
+            />
 
             {/* Main Dashboard Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
@@ -83,40 +109,84 @@ const Index = () => {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <PerformanceChart data={filteredData} />
-                  <MonthlyComplianceChart data={filteredData} />
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <FinancialChart data={filteredData} />
-                  <MiniChat data={filteredData} />
-                </div>
+                {filteredData.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <PerformanceChart data={filteredData} />
+                      <MonthlyComplianceChart data={filteredData} />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <FinancialChart data={filteredData} />
+                      <MiniChat data={filteredData} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12 space-y-4">
+                    <div className="text-6xl opacity-20">📊</div>
+                    <h3 className="text-xl font-semibold text-muted-foreground">
+                      Nenhum Dado Encontrado
+                    </h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      A página '{currentMonth}' não possui dados. Adicione dados via editor ou crie uma nova página na planilha.
+                    </p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="performance" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <PerformanceChart data={filteredData} />
-                  <MonthlyComplianceChart data={filteredData} />
-                </div>
+                {filteredData.length > 0 ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <PerformanceChart data={filteredData} />
+                    <MonthlyComplianceChart data={filteredData} />
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhum dado de performance disponível para o mês selecionado.</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="analytics" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <CityPerformanceChart data={filteredData} />
-                  <BrandDistributionChart data={filteredData} />
-                </div>
+                {filteredData.length > 0 ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <CityPerformanceChart data={filteredData} />
+                    <BrandDistributionChart data={filteredData} />
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhum dado analítico disponível para o mês selecionado.</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="ranking" className="space-y-6">
-                <PromoterRankingChart data={filteredData} />
+                {filteredData.length > 0 ? (
+                  <PromoterRankingChart data={filteredData} />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhum dado de ranking disponível para o mês selecionado.</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="financial" className="space-y-6">
-                <FinancialChart data={filteredData} />
+                {filteredData.length > 0 ? (
+                  <FinancialChart data={filteredData} />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhum dado financeiro disponível para o mês selecionado.</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="insights" className="space-y-6">
-                <ProfessionalInsights data={filteredData} />
+                {filteredData.length > 0 ? (
+                  <ProfessionalInsights data={filteredData} />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Nenhum insight disponível para o mês selecionado.</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="chat" className="space-y-6">

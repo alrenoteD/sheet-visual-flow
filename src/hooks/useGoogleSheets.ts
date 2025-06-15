@@ -8,6 +8,8 @@ export const useGoogleSheets = () => {
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState<GoogleSheetsConfig | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState<string>('');
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
 
   useEffect(() => {
     // Verificar se as variáveis de ambiente estão configuradas
@@ -34,15 +36,47 @@ export const useGoogleSheets = () => {
     if (apiKey && spreadsheetId) {
       const envConfig = { apiKey, spreadsheetId, range };
       setConfig(envConfig);
+      setCurrentMonth(getCurrentMonthSheet());
       console.log('🚀 Iniciando conexão com Google Sheets...');
-      loadData(envConfig);
+      loadAvailableMonths(envConfig).then(() => {
+        loadData(envConfig);
+      });
     } else {
       console.log('❌ Configuração incompleta - Dashboard aguardando variáveis de ambiente');
-      console.log('📖 Consulte: public/CONFIGURACAO_EASYPANEL.md para instruções');
+      console.log('📖 Consulte: public/CONFIGURACAO_GOOGLE_SHEETS.md para instruções');
       setIsConnected(false);
       setData([]);
     }
   }, []);
+
+  const getCurrentMonthSheet = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const loadAvailableMonths = async (configToUse?: GoogleSheetsConfig) => {
+    const currentConfig = configToUse || config;
+    if (!currentConfig) return;
+
+    try {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${currentConfig.spreadsheetId}?key=${currentConfig.apiKey}`;
+      const response = await fetch(url);
+      
+      if (response.ok) {
+        const result = await response.json();
+        const sheets = result.sheets || [];
+        const monthSheets = sheets
+          .map((sheet: any) => sheet.properties.title)
+          .filter((title: string) => /^\d{4}-\d{2}$/.test(title))
+          .sort();
+        
+        setAvailableMonths(monthSheets);
+        console.log('📅 Páginas mensais disponíveis:', monthSheets);
+      }
+    } catch (error) {
+      console.warn('⚠️ Erro ao carregar páginas mensais:', error);
+    }
+  };
 
   const processVisitDates = (row: string[], startIndex: number = 8): { dates: string[], count: number } => {
     const dates: string[] = [];
@@ -55,70 +89,53 @@ export const useGoogleSheets = () => {
   };
 
   const consolidatePromoters = (rawData: VisitData[]): VisitData[] => {
-    const consolidatedMap = new Map<string, VisitData>();
-
-    rawData.forEach((item) => {
-      const promotorKey = item.promotor.trim().toLowerCase();
-      
-      if (consolidatedMap.has(promotorKey)) {
-        // Promotor já existe - consolidar dados
-        const existing = consolidatedMap.get(promotorKey)!;
-        
-        // Combinar visitas
-        existing.visitasPreDefinidas += item.visitasPreDefinidas;
-        existing.valorContrato += item.valorContrato;
-        
-        // Combinar datas de visitas (evitando duplicatas)
-        const allDates = [...existing.datasVisitas, ...item.datasVisitas];
-        existing.datasVisitas = [...new Set(allDates)].sort();
-        existing.visitasRealizadas = existing.datasVisitas.length;
-        
-        // Recalcular percentual e valores
-        existing.percentual = existing.visitasPreDefinidas > 0 
-          ? (existing.visitasRealizadas / existing.visitasPreDefinidas) * 100 
-          : 0;
-        existing.valorPorVisita = existing.visitasPreDefinidas > 0 
-          ? existing.valorContrato / existing.visitasPreDefinidas 
-          : 0;
-        existing.valorPago = existing.visitasRealizadas * existing.valorPorVisita;
-        
-        // Manter outras informações do primeiro registro ou atualizar
-        if (!existing.telefone && item.telefone) existing.telefone = item.telefone;
-        if (!existing.rede && item.rede) existing.rede = item.rede;
-        if (!existing.cidade && item.cidade) existing.cidade = item.cidade;
-        if (!existing.marca && item.marca) existing.marca = item.marca;
-        
-        console.log(`🔄 Consolidado promotor: ${item.promotor} (${existing.visitasRealizadas} visitas)`);
-      } else {
-        // Novo promotor
-        consolidatedMap.set(promotorKey, { ...item });
-      }
-    });
-
-    return Array.from(consolidatedMap.values());
+    // Não consolidar mais - manter registros separados por marca/rede/cidade
+    // mas agrupar por promotor para contagem de pessoas únicas
+    return rawData.map((item, index) => ({
+      ...item,
+      id: `${currentMonth}-${index + 1}` // ID único por mês
+    }));
   };
 
-  const loadData = async (configToUse?: GoogleSheetsConfig) => {
+  const getUniquePromoters = (data: VisitData[]): string[] => {
+    const uniqueNames = new Set(data.map(item => item.promotor.trim().toLowerCase()));
+    return Array.from(uniqueNames);
+  };
+
+  const loadData = async (configToUse?: GoogleSheetsConfig, monthSheet?: string) => {
     const currentConfig = configToUse || config;
+    const targetMonth = monthSheet || currentMonth;
+    
     if (!currentConfig) {
       console.log('⏳ Aguardando configuração das variáveis de ambiente do Google Sheets');
       return;
     }
 
     setLoading(true);
-    console.log('📊 Carregando dados da planilha...');
+    console.log(`📊 Carregando dados da planilha - Página: ${targetMonth}`);
     
     try {
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${currentConfig.spreadsheetId}/values/${currentConfig.range}?key=${currentConfig.apiKey}`;
+      const range = `${targetMonth}!A1:AZ1000`;
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${currentConfig.spreadsheetId}/values/${range}?key=${currentConfig.apiKey}`;
       const response = await fetch(url);
       
       if (!response.ok) {
-        console.error('❌ Erro na requisição Google Sheets:', response.status, response.statusText);
+        if (response.status === 400) {
+          console.warn(`⚠️ Página '${targetMonth}' não existe na planilha`);
+          setData([]);
+          setIsConnected(true);
+          toast({
+            title: "Página não encontrada",
+            description: `A página '${targetMonth}' não existe. Crie uma nova página na planilha.`,
+            variant: "destructive"
+          });
+          return;
+        }
         throw new Error(`Erro ao carregar dados: ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('📥 Resposta da API Google Sheets recebida:', result);
+      console.log(`📥 Resposta da API Google Sheets recebida para ${targetMonth}:`, result);
       
       if (result.values && result.values.length > 1) {
         const [headers, ...rows] = result.values;
@@ -135,7 +152,7 @@ export const useGoogleSheets = () => {
           const valorPago = visitasRealizadas * valorPorVisita;
 
           return {
-            id: (index + 1).toString(),
+            id: `${targetMonth}-${index + 1}`,
             promotor: row[0] || '',
             rede: row[1] || '',
             cidade: row[2] || '',
@@ -150,32 +167,32 @@ export const useGoogleSheets = () => {
             valorPago,
             datasVisitas: visitDates.dates
           };
-        });
+        }).filter(item => item.promotor.trim() !== ''); // Filtrar linhas vazias
         
-        // Consolidar promotores com nomes idênticos
         const consolidatedData = consolidatePromoters(rawData);
+        const uniquePromotersCount = getUniquePromoters(consolidatedData).length;
         
         setData(consolidatedData);
         setIsConnected(true);
-        console.log(`✅ Dados carregados e consolidados com sucesso: ${consolidatedData.length} promotores únicos (${rawData.length} registros originais)`);
+        console.log(`✅ Dados carregados para ${targetMonth}: ${consolidatedData.length} registros (${uniquePromotersCount} promotores únicos)`);
         
         toast({
-          title: "Conexão Estabelecida",
-          description: `${consolidatedData.length} promotores carregados (${rawData.length} registros consolidados)`
+          title: "Dados Carregados",
+          description: `${consolidatedData.length} registros de ${uniquePromotersCount} promotores únicos - ${targetMonth}`
         });
       } else {
-        console.warn('⚠️ Nenhum dado encontrado na planilha ou planilha vazia');
+        console.warn(`⚠️ Nenhum dado encontrado na página '${targetMonth}'`);
         setData([]);
-        setIsConnected(false);
+        setIsConnected(true);
         
         toast({
-          title: "Planilha Vazia",
-          description: "Nenhum dado encontrado na planilha configurada",
+          title: "Página Vazia",
+          description: `A página '${targetMonth}' está vazia`,
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error('❌ Erro ao carregar dados do Google Sheets:', error);
+      console.error(`❌ Erro ao carregar dados da página '${targetMonth}':`, error);
       setIsConnected(false);
       setData([]);
       
@@ -201,48 +218,38 @@ export const useGoogleSheets = () => {
     }
 
     setLoading(true);
-    console.log('💾 Iniciando atualização da planilha...');
+    console.log(`💾 Iniciando atualização da planilha - Página: ${currentMonth}`);
     
     try {
-      // Expandir dados consolidados de volta para linhas individuais
-      const expandedData: any[] = [];
-      
-      updatedData.forEach(item => {
-        // Para cada promotor, criar uma linha na planilha
-        // Se houver múltiplas visitas, todas vão na mesma linha
-        const maxDates = Math.max(item.datasVisitas.length, 1);
-        
-        const row = [
-          item.promotor,
-          item.rede,
-          item.cidade,
-          item.marca,
-          item.visitasPreDefinidas.toString(),
-          item.telefone,
-          item.dataInicio,
-          item.valorContrato.toString()
-        ];
-        
-        // Adicionar todas as datas de visita
-        for (let i = 0; i < 50; i++) { // Reservar 50 colunas para datas
-          row.push(item.datasVisitas[i] || '');
-        }
-        
-        expandedData.push(row);
-      });
-
       const values = [
         [
           'PROMOTOR/AGÊNCIA', 'REDE', 'CIDADE', 'MARCA', 'VISITAS PRÉ-DEFINIDAS', 
           'TELEFONE', 'DATA INÍCIO', 'VALOR CONTRATO',
           ...Array.from({length: 50}, (_, i) => `DATA VISITA ${i + 1}`)
         ],
-        ...expandedData
+        ...updatedData.map(item => {
+          const row = [
+            item.promotor,
+            item.rede,
+            item.cidade,
+            item.marca,
+            item.visitasPreDefinidas.toString(),
+            item.telefone,
+            item.dataInicio,
+            item.valorContrato.toString()
+          ];
+          
+          // Adicionar todas as datas de visita
+          for (let i = 0; i < 50; i++) {
+            row.push(item.datasVisitas[i] || '');
+          }
+          
+          return row;
+        })
       ];
 
-      console.log('📤 Enviando dados para Google Sheets...', values.length, 'linhas');
-
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${config.range}?valueInputOption=RAW&key=${config.apiKey}`;
+      const range = `${currentMonth}!A1:AZ${values.length}`;
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${range}?valueInputOption=RAW&key=${config.apiKey}`;
       
       const response = await fetch(url, {
         method: 'PUT',
@@ -257,11 +264,11 @@ export const useGoogleSheets = () => {
       }
 
       setData(updatedData);
-      console.log('✅ Planilha atualizada com sucesso');
+      console.log(`✅ Planilha atualizada com sucesso - Página: ${currentMonth}`);
       
       toast({
         title: "Sucesso",
-        description: "Dados salvos na planilha do Google Sheets"
+        description: `Dados salvos na página '${currentMonth}' do Google Sheets`
       });
     } catch (error) {
       console.error('❌ Erro ao atualizar dados na planilha:', error);
@@ -275,12 +282,23 @@ export const useGoogleSheets = () => {
     }
   };
 
+  const changeMonth = (month: string) => {
+    setCurrentMonth(month);
+    if (config) {
+      loadData(config, month);
+    }
+  };
+
   return {
     data,
     loading,
     config,
     isConnected,
+    currentMonth,
+    availableMonths,
     loadData: () => loadData(),
-    updateData
+    updateData,
+    changeMonth,
+    getUniquePromoters: () => getUniquePromoters(data)
   };
 };
