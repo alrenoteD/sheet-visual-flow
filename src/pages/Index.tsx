@@ -47,8 +47,8 @@ const Index = () => {
     promoterRanking: false
   });
 
-  // Real-time updates with fixed interval
-  const { forceUpdate, intervalMinutes } = useRealTimeUpdates({
+  // Real-time updates - agora apenas manual e webhook
+  const { forceUpdate } = useRealTimeUpdates({
     isConnected,
     loadData,
     currentMonth
@@ -83,7 +83,7 @@ const Index = () => {
         {/* Enhanced Header with Auth */}
         <DashboardHeader isConnected={isConnected} onRefresh={forceUpdate} />
 
-        {/* Connection Status with Update Interval Info */}
+        {/* Connection Status */}
         <ConnectionStatus
           isConnected={isConnected}
           loading={loading}
@@ -91,9 +91,13 @@ const Index = () => {
           onRefresh={loadData}
         />
 
+        {/* Instruções para Webhook (apenas se conectado) */}
         {isConnected && (
-          <div className="text-sm text-muted-foreground text-center">
-            Atualização automática a cada {intervalMinutes} minutos
+          <div className="text-sm text-muted-foreground text-center p-4 bg-muted/50 rounded-lg">
+            <p className="font-medium">📡 Refresh Manual ou via Webhook</p>
+            <p className="mt-1">
+              Para refresh automático via N8N/webhook, use: <code className="bg-background px-2 py-1 rounded">window.triggerDashboardRefresh()</code>
+            </p>
           </div>
         )}
 
@@ -485,7 +489,7 @@ const Index = () => {
         <div className="text-center text-sm text-muted-foreground border-t border-border pt-6">
           <div className="flex items-center justify-center gap-2">
             <BarChart3 className="w-4 h-4" />
-            <span>Dashboard sincronizado com Google Sheets - Modelo Avançado de Controle</span>
+            <span>Dashboard sincronizado com Google Sheets - Controle Manual</span>
             <span className="text-xs opacity-50">| Powered by Deylith.dev</span>
           </div>
         </div>

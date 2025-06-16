@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 
 interface UseRealTimeUpdatesProps {
@@ -13,61 +13,63 @@ export const useRealTimeUpdates = ({
   loadData, 
   currentMonth
 }: UseRealTimeUpdatesProps) => {
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastUpdateRef = useRef<Date | null>(null);
 
-  // Get interval from environment variable (in minutes), default to 5 minutes
-  const intervalMinutes = parseInt(import.meta.env.VITE_UPDATE_INTERVAL_MINUTES || '5', 10);
-  const intervalMs = intervalMinutes * 60 * 1000; // Convert to milliseconds
-
+  // Webhook listener para refresh externo (N8N, etc.)
   useEffect(() => {
     if (!isConnected) return;
 
-    const checkForUpdates = async () => {
-      console.log('🔄 Verificando atualizações na planilha...');
-      
-      try {
-        // Recarregar dados silenciosamente
-        await loadData();
-        
-        const now = new Date();
-        if (lastUpdateRef.current) {
-          const timeDiff = now.getTime() - lastUpdateRef.current.getTime();
-          const minutesDiff = Math.floor(timeDiff / (1000 * 60));
-          
-          if (minutesDiff >= intervalMinutes) {
-            toast({
-              title: "📊 Dados Atualizados",
-              description: `Dashboard sincronizado - ${now.toLocaleTimeString('pt-BR')}`,
-              duration: 3000
-            });
-          }
-        }
-        
-        lastUpdateRef.current = now;
-      } catch (error) {
-        console.warn('⚠️ Erro na verificação automática:', error);
+    const handleWebhookRefresh = (event: MessageEvent) => {
+      // Escutar por mensagens de webhook para refresh
+      if (event.data?.type === 'DASHBOARD_REFRESH') {
+        console.log('🔄 Refresh solicitado via webhook externo');
+        loadData();
+        toast({
+          title: "📊 Dados Atualizados",
+          description: `Dashboard sincronizado via webhook - ${new Date().toLocaleTimeString('pt-BR')}`,
+          duration: 3000
+        });
       }
     };
 
-    // Verificação inicial
-    checkForUpdates();
+    // Escutar por postMessage de outras janelas/iframes
+    window.addEventListener('message', handleWebhookRefresh);
 
-    // Configurar intervalo de verificação usando o valor correto em milissegundos
-    intervalRef.current = setInterval(checkForUpdates, intervalMs);
+    // API endpoint para refresh via HTTP request
+    const handleWebhookHTTP = async () => {
+      try {
+        // Verificar se existe uma flag no localStorage indicando refresh pendente
+        const refreshFlag = localStorage.getItem('dashboard_refresh_pending');
+        if (refreshFlag) {
+          console.log('🔄 Refresh pendente detectado');
+          localStorage.removeItem('dashboard_refresh_pending');
+          await loadData();
+          toast({
+            title: "📊 Dados Atualizados",
+            description: `Dashboard sincronizado - ${new Date().toLocaleTimeString('pt-BR')}`,
+            duration: 3000
+          });
+        }
+      } catch (error) {
+        console.warn('⚠️ Erro na verificação de refresh webhook:', error);
+      }
+    };
 
-    console.log(`⏰ Atualização automática configurada para ${intervalMinutes} minutos`);
+    // Verificar flag de refresh a cada 5 segundos (apenas se houver flag)
+    const checkInterval = setInterval(() => {
+      if (localStorage.getItem('dashboard_refresh_pending')) {
+        handleWebhookHTTP();
+      }
+    }, 5000);
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      window.removeEventListener('message', handleWebhookRefresh);
+      clearInterval(checkInterval);
     };
-  }, [isConnected, loadData, currentMonth, intervalMs, intervalMinutes]);
+  }, [isConnected, loadData, currentMonth]);
 
-  const forceUpdate = () => {
-    console.log('🔄 Atualização forçada solicitada');
-    loadData();
+  const forceUpdate = async () => {
+    console.log('🔄 Atualização manual solicitada');
+    await loadData();
     toast({
       title: "🔄 Atualizando...",
       description: "Sincronizando dados com a planilha",
@@ -75,5 +77,20 @@ export const useRealTimeUpdates = ({
     });
   };
 
-  return { forceUpdate, intervalMinutes };
+  // Função para webhook externo sinalizar refresh
+  const triggerRefreshWebhook = () => {
+    localStorage.setItem('dashboard_refresh_pending', 'true');
+    console.log('🔄 Flag de refresh webhook definida');
+  };
+
+  // Expor função global para webhook externo
+  useEffect(() => {
+    (window as any).triggerDashboardRefresh = triggerRefreshWebhook;
+    
+    return () => {
+      delete (window as any).triggerDashboardRefresh;
+    };
+  }, []);
+
+  return { forceUpdate };
 };
