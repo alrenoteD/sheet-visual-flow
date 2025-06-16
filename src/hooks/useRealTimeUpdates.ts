@@ -13,7 +13,7 @@ export const useRealTimeUpdates = ({
   isConnected, 
   loadData, 
   currentMonth, 
-  intervalMinutes = 2 
+  intervalMinutes = 15 
 }: UseRealTimeUpdatesProps) => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateRef = useRef<Date | null>(null);
