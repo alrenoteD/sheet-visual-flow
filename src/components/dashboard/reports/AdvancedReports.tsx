@@ -81,7 +81,9 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
           visitasRealizadas: promoterData.reduce((sum, item) => sum + item.visitasRealizadas, 0),
           valorContrato: promoterData.reduce((sum, item) => sum + item.valorContrato, 0),
           valorPago: promoterData.reduce((sum, item) => sum + item.valorPago, 0),
-          datasVisitas: promoterData.flatMap(item => item.datasVisitas).filter(date => date)
+          datasVisitas: promoterData.flatMap(item => item.datasVisitas).filter(date => date),
+          percentual: 0,
+          valorPorVisita: 0
         };
 
         consolidated.percentual = consolidated.visitasPreDefinidas > 0 
