@@ -6,17 +6,19 @@ interface UseRealTimeUpdatesProps {
   isConnected: boolean;
   loadData: () => void;
   currentMonth: string;
-  intervalMinutes?: number;
 }
 
 export const useRealTimeUpdates = ({ 
   isConnected, 
   loadData, 
-  currentMonth, 
-  intervalMinutes = 120000 
+  currentMonth
 }: UseRealTimeUpdatesProps) => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateRef = useRef<Date | null>(null);
+
+  // Get interval from environment variable (in minutes), default to 5 minutes
+  const intervalMinutes = parseInt(import.meta.env.VITE_UPDATE_INTERVAL_MINUTES || '5', 10);
+  const intervalMs = intervalMinutes * 60 * 1000; // Convert to milliseconds
 
   useEffect(() => {
     if (!isConnected) return;
@@ -37,7 +39,7 @@ export const useRealTimeUpdates = ({
             toast({
               title: "📊 Dados Atualizados",
               description: `Dashboard sincronizado - ${now.toLocaleTimeString('pt-BR')}`,
-              duration: 120000
+              duration: 3000
             });
           }
         }
@@ -51,15 +53,17 @@ export const useRealTimeUpdates = ({
     // Verificação inicial
     checkForUpdates();
 
-    // Configurar intervalo de verificação
-    intervalRef.current = setInterval(checkForUpdates, intervalMinutes * 60 * 1000);
+    // Configurar intervalo de verificação usando o valor correto em milissegundos
+    intervalRef.current = setInterval(checkForUpdates, intervalMs);
+
+    console.log(`⏰ Atualização automática configurada para ${intervalMinutes} minutos`);
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isConnected, loadData, currentMonth, intervalMinutes]);
+  }, [isConnected, loadData, currentMonth, intervalMs, intervalMinutes]);
 
   const forceUpdate = () => {
     console.log('🔄 Atualização forçada solicitada');
@@ -67,9 +71,9 @@ export const useRealTimeUpdates = ({
     toast({
       title: "🔄 Atualizando...",
       description: "Sincronizando dados com a planilha",
-      duration: 120000
+      duration: 3000
     });
   };
 
-  return { forceUpdate };
+  return { forceUpdate, intervalMinutes };
 };

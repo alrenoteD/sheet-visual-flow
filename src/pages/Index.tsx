@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, BarChart3, TrendingUp, Settings } from 'lucide-react';
+import { Eye, EyeOff, BarChart3 } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useRealTimeUpdates } from '@/hooks/useRealTimeUpdates';
 import { ConnectionStatus } from '@/components/dashboard/ConnectionStatus';
@@ -47,12 +47,11 @@ const Index = () => {
     promoterRanking: false
   });
 
-  // Real-time updates
-  const { forceUpdate } = useRealTimeUpdates({
+  // Real-time updates with fixed interval
+  const { forceUpdate, intervalMinutes } = useRealTimeUpdates({
     isConnected,
     loadData,
-    currentMonth,
-    intervalMinutes: 2
+    currentMonth
   });
 
   useEffect(() => {
@@ -81,16 +80,22 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Enhanced Header */}
+        {/* Enhanced Header with Auth */}
         <DashboardHeader isConnected={isConnected} onRefresh={forceUpdate} />
 
-        {/* Connection Status */}
+        {/* Connection Status with Update Interval Info */}
         <ConnectionStatus
           isConnected={isConnected}
           loading={loading}
           dataCount={data.length}
           onRefresh={loadData}
         />
+
+        {isConnected && (
+          <div className="text-sm text-muted-foreground text-center">
+            Atualização automática a cada {intervalMinutes} minutos
+          </div>
+        )}
 
         {/* Mostrar conteúdo apenas se conectado */}
         {isConnected ? (

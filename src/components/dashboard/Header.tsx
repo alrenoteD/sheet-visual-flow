@@ -1,64 +1,72 @@
 
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RefreshCw, LogOut, User } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { NoteSidebar } from './NoteSidebar';
 
-interface HeaderProps {
+interface DashboardHeaderProps {
   isConnected: boolean;
   onRefresh: () => void;
 }
 
-export const DashboardHeader = ({ isConnected, onRefresh }: HeaderProps) => {
+export const DashboardHeader = ({ isConnected, onRefresh }: DashboardHeaderProps) => {
+  const { user, logout } = useAuth();
+
   return (
-    <div className="text-center space-y-4 mb-8">
-      {/* Brand Header */}
-      <div className="flex items-center justify-between bg-gradient-to-r from-primary/10 to-chart-1/10 p-4 rounded-lg border">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        {/* Brand and Logo Section */}
         <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-chart-1 bg-clip-text text-transparent">
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Deylith.dev
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Agência de automações e Soluções Inteligentes com IA
             </p>
           </div>
-        </div>
-        <div className="w-16 h-16 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
-          <span className="text-xs text-muted-foreground text-center">Logo<br/>Aqui</span>
+          
+          {/* Logo placeholder */}
+          <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+            <span className="text-xs text-gray-400">Logo</span>
+          </div>
         </div>
       </div>
 
-      {/* Dashboard Title */}
-      <div className="space-y-2">
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-chart-1 bg-clip-text text-transparent">
-          DASHBOARD DE CONTROLE DE VISITAS
-        </h2>
-        <p className="text-muted-foreground text-lg">
-          Sistema Completo de Gestão | Promotores • Agências • Pagamentos
-        </p>
-        <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            <span>Atualizado: {new Date().toLocaleString('pt-BR')}</span>
+      <div className="flex items-center gap-3">
+        {/* User Info */}
+        {user && (
+          <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full">
+            <User className="w-4 h-4" />
+            <span className="text-sm font-medium">{user.displayName}</span>
           </div>
-          {isConnected && (
-            <>
-              <Badge variant="default" className="bg-green-600">
-                📊 Conectado ao Google Sheets
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onRefresh}
-                className="flex items-center gap-1"
-              >
-                <RefreshCw className="w-3 h-3" />
-                Sincronizar
-              </Button>
-            </>
-          )}
-        </div>
+        )}
+
+        {/* Notes Sidebar */}
+        <NoteSidebar />
+
+        {/* Refresh Button */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onRefresh}
+          disabled={!isConnected}
+          className="gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Sincronizar
+        </Button>
+
+        {/* Logout Button */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={logout}
+          className="gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          Sair
+        </Button>
       </div>
     </div>
   );
