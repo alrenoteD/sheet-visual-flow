@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, BarChart3 } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useRealTimeUpdates } from '@/hooks/useRealTimeUpdates';
+import { useTemporalCharts } from '@/hooks/useTemporalCharts';
 import { ConnectionStatus } from '@/components/dashboard/ConnectionStatus';
 import { DataEditor } from '@/components/DataEditor';
 import { KPICards } from '@/components/dashboard/KPICards';
@@ -36,15 +37,15 @@ const Index = () => {
   } = useGoogleSheets();
   
   const [filteredData, setFilteredData] = useState<VisitData[]>([]);
-  const [temporalFilteredData, setTemporalFilteredData] = useState<VisitData[]>([]);
-  const [activePeriod, setActivePeriod] = useState('todo-periodo');
+  const { chartData, activePeriod, filterChartData } = useTemporalCharts({ data: filteredData });
+  
   const [chartVisibility, setChartVisibility] = useState({
     performance: true,
     financial: true,
     compliance: true,
-    cityPerformance: false,
-    brandDistribution: false,
-    promoterRanking: false
+    cityPerformance: true,
+    brandDistribution: true,
+    promoterRanking: true
   });
 
   // Real-time updates - agora apenas manual e webhook
@@ -56,16 +57,10 @@ const Index = () => {
 
   useEffect(() => {
     setFilteredData(data);
-    setTemporalFilteredData(data);
   }, [data]);
 
   const handleFiltersChange = (newFilteredData: VisitData[]) => {
     setFilteredData(newFilteredData);
-  };
-
-  const handleTemporalFiltersChange = (newFilteredData: VisitData[], period: string) => {
-    setTemporalFilteredData(newFilteredData);
-    setActivePeriod(period);
   };
 
   const toggleChartVisibility = (chartKey: keyof typeof chartVisibility) => {
@@ -74,8 +69,6 @@ const Index = () => {
       [chartKey]: !prev[chartKey]
     }));
   };
-
-  const finalData = temporalFilteredData.length > 0 ? temporalFilteredData : filteredData;
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -118,16 +111,15 @@ const Index = () => {
               <div className="space-y-4">
                 <DashboardFilters data={data} onFiltersChange={handleFiltersChange} />
                 <TemporalFilters 
-                  data={filteredData} 
-                  onFilterChange={handleTemporalFiltersChange}
+                  onFilterChange={filterChartData}
                   activePeriod={activePeriod}
                 />
               </div>
             )}
 
-            {/* KPI Cards */}
+            {/* KPI Cards - usa dados filtrados pelos filtros principais */}
             <KPICards 
-              data={finalData} 
+              data={filteredData} 
               isConnected={isConnected}
               getUniquePromoters={getUniquePromoters}
             />
@@ -147,7 +139,7 @@ const Index = () => {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6">
-                {finalData.length > 0 ? (
+                {filteredData.length > 0 ? (
                   <>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {chartVisibility.performance && (
@@ -160,7 +152,7 @@ const Index = () => {
                           >
                             <EyeOff className="w-4 h-4" />
                           </Button>
-                          <PerformanceChart data={finalData} />
+                          <PerformanceChart data={chartData} />
                         </div>
                       )}
                       {!chartVisibility.performance && (
@@ -186,7 +178,7 @@ const Index = () => {
                           >
                             <EyeOff className="w-4 h-4" />
                           </Button>
-                          <MonthlyComplianceChart data={finalData} />
+                          <MonthlyComplianceChart data={chartData} />
                         </div>
                       )}
                       {!chartVisibility.compliance && (
@@ -214,7 +206,7 @@ const Index = () => {
                           >
                             <EyeOff className="w-4 h-4" />
                           </Button>
-                          <FinancialChart data={finalData} />
+                          <FinancialChart data={chartData} />
                         </div>
                       )}
                       {!chartVisibility.financial && (
@@ -240,7 +232,7 @@ const Index = () => {
                           >
                             <EyeOff className="w-4 h-4" />
                           </Button>
-                          <CityPerformanceChart data={finalData} />
+                          <CityPerformanceChart data={chartData} />
                         </div>
                       )}
                       {!chartVisibility.cityPerformance && (
@@ -252,6 +244,60 @@ const Index = () => {
                           >
                             <Eye className="w-4 h-4" />
                             Mostrar City Performance
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {chartVisibility.brandDistribution && (
+                        <div className="relative">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2 z-10"
+                            onClick={() => toggleChartVisibility('brandDistribution')}
+                          >
+                            <EyeOff className="w-4 h-4" />
+                          </Button>
+                          <BrandDistributionChart data={chartData} />
+                        </div>
+                      )}
+                      {!chartVisibility.brandDistribution && (
+                        <div className="border-2 border-dashed border-muted rounded-lg p-4 flex items-center justify-center">
+                          <Button
+                            variant="outline"
+                            onClick={() => toggleChartVisibility('brandDistribution')}
+                            className="flex items-center gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Mostrar Brand Distribution
+                          </Button>
+                        </div>
+                      )}
+
+                      {chartVisibility.promoterRanking && (
+                        <div className="relative">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2 z-10"
+                            onClick={() => toggleChartVisibility('promoterRanking')}
+                          >
+                            <EyeOff className="w-4 h-4" />
+                          </Button>
+                          <PromoterRankingChart data={chartData} />
+                        </div>
+                      )}
+                      {!chartVisibility.promoterRanking && (
+                        <div className="border-2 border-dashed border-muted rounded-lg p-4 flex items-center justify-center">
+                          <Button
+                            variant="outline"
+                            onClick={() => toggleChartVisibility('promoterRanking')}
+                            className="flex items-center gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Mostrar Promoter Ranking
                           </Button>
                         </div>
                       )}
@@ -271,59 +317,10 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="performance" className="space-y-6">
-                {finalData.length > 0 ? (
+                {filteredData.length > 0 ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {chartVisibility.performance && (
-                      <div className="relative">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2 z-10"
-                          onClick={() => toggleChartVisibility('performance')}
-                        >
-                          <EyeOff className="w-4 h-4" />
-                        </Button>
-                        <PerformanceChart data={finalData} />
-                      </div>
-                    )}
-                    {!chartVisibility.performance && (
-                      <div className="border-2 border-dashed border-muted rounded-lg p-4 flex items-center justify-center">
-                        <Button
-                          variant="outline"
-                          onClick={() => toggleChartVisibility('performance')}
-                          className="flex items-center gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Mostrar Performance Chart
-                        </Button>
-                      </div>
-                    )}
-
-                    {chartVisibility.compliance && (
-                      <div className="relative">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2 z-10"
-                          onClick={() => toggleChartVisibility('compliance')}
-                        >
-                          <EyeOff className="w-4 h-4" />
-                        </Button>
-                        <MonthlyComplianceChart data={finalData} />
-                      </div>
-                    )}
-                    {!chartVisibility.compliance && (
-                      <div className="border-2 border-dashed border-muted rounded-lg p-4 flex items-center justify-center">
-                        <Button
-                          variant="outline"
-                          onClick={() => toggleChartVisibility('compliance')}
-                          className="flex items-center gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Mostrar Compliance Chart
-                        </Button>
-                      </div>
-                    )}
+                    <PerformanceChart data={chartData} />
+                    <MonthlyComplianceChart data={chartData} />
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -333,59 +330,10 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="analytics" className="space-y-6">
-                {finalData.length > 0 ? (
+                {filteredData.length > 0 ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {chartVisibility.cityPerformance && (
-                      <div className="relative">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2 z-10"
-                          onClick={() => toggleChartVisibility('cityPerformance')}
-                        >
-                          <EyeOff className="w-4 h-4" />
-                        </Button>
-                        <CityPerformanceChart data={finalData} />
-                      </div>
-                    )}
-                    {!chartVisibility.cityPerformance && (
-                      <div className="border-2 border-dashed border-muted rounded-lg p-4 flex items-center justify-center">
-                        <Button
-                          variant="outline"
-                          onClick={() => toggleChartVisibility('cityPerformance')}
-                          className="flex items-center gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Mostrar City Performance
-                        </Button>
-                      </div>
-                    )}
-
-                    {chartVisibility.brandDistribution && (
-                      <div className="relative">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2 z-10"
-                          onClick={() => toggleChartVisibility('brandDistribution')}
-                        >
-                          <EyeOff className="w-4 h-4" />
-                        </Button>
-                        <BrandDistributionChart data={finalData} />
-                      </div>
-                    )}
-                    {!chartVisibility.brandDistribution && (
-                      <div className="border-2 border-dashed border-muted rounded-lg p-4 flex items-center justify-center">
-                        <Button
-                          variant="outline"
-                          onClick={() => toggleChartVisibility('brandDistribution')}
-                          className="flex items-center gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Mostrar Brand Distribution
-                        </Button>
-                      </div>
-                    )}
+                    <CityPerformanceChart data={chartData} />
+                    <BrandDistributionChart data={chartData} />
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -395,50 +343,18 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="ranking" className="space-y-6">
-                {finalData.length > 0 ? (
-                  <div className="relative">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-2 right-2 z-10"
-                      onClick={() => toggleChartVisibility('promoterRanking')}
-                    >
-                      <EyeOff className="w-4 h-4" />
-                    </Button>
-                    <PromoterRankingChart data={finalData} />
-                  </div>
+                {filteredData.length > 0 ? (
+                  <PromoterRankingChart data={chartData} />
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">Nenhum dado de ranking disponível para o mês selecionado.</p>
                   </div>
                 )}
-                {!chartVisibility.promoterRanking && (
-                  <div className="border-2 border-dashed border-muted rounded-lg p-4 flex items-center justify-center">
-                    <Button
-                      variant="outline"
-                      onClick={() => toggleChartVisibility('promoterRanking')}
-                      className="flex items-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Mostrar Promoter Ranking
-                    </Button>
-                  </div>
-                )}
               </TabsContent>
 
               <TabsContent value="financial" className="space-y-6">
-                {finalData.length > 0 ? (
-                  <div className="relative">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-2 right-2 z-10"
-                      onClick={() => toggleChartVisibility('financial')}
-                    >
-                      <EyeOff className="w-4 h-4" />
-                    </Button>
-                    <FinancialChart data={finalData} />
-                  </div>
+                {filteredData.length > 0 ? (
+                  <FinancialChart data={chartData} />
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">Nenhum dado financeiro disponível para o mês selecionado.</p>
@@ -447,8 +363,8 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="insights" className="space-y-6">
-                {finalData.length > 0 ? (
-                  <ProfessionalInsights data={finalData} />
+                {filteredData.length > 0 ? (
+                  <ProfessionalInsights data={filteredData} />
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">Nenhum insight disponível para o mês selecionado.</p>
@@ -457,11 +373,11 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="reports" className="space-y-6">
-                <AdvancedReports data={finalData} getUniquePromoters={getUniquePromoters} />
+                <AdvancedReports data={filteredData} getUniquePromoters={getUniquePromoters} />
               </TabsContent>
 
               <TabsContent value="assistant" className="space-y-6">
-                <DasherAssistant data={finalData} />
+                <DasherAssistant data={filteredData} />
               </TabsContent>
 
               <TabsContent value="editor" className="space-y-6">

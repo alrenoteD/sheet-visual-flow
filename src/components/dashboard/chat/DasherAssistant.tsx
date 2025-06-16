@@ -1,13 +1,12 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, Bot, User, Wifi, WifiOff, HelpCircle, Zap, TrendingUp, BarChart3 } from 'lucide-react';
+import { MessageCircle, Send, Bot, User, Wifi, WifiOff, TrendingUp, BarChart3, Users, MapPin, Star, Target, DollarSign, Calendar } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { VisitData } from '@/types/VisitData';
+import { ScreenBuddy } from './ScreenBuddy';
 
 interface Message {
   id: string;
@@ -47,9 +46,34 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
       category: "Análise"
     },
     {
-      icon: Zap,
+      icon: Target,
       text: "Dê sugestões para melhorar os resultados",
       category: "Estratégia"
+    },
+    {
+      icon: Users,
+      text: "Qual promotor tem melhor performance?",
+      category: "Ranking"
+    },
+    {
+      icon: MapPin,
+      text: "Como está o desempenho por cidade?",
+      category: "Geografia"
+    },
+    {
+      icon: DollarSign,
+      text: "Análise do retorno financeiro",
+      category: "Financeiro"
+    },
+    {
+      icon: Calendar,
+      text: "Qual o melhor período de visitas?",
+      category: "Temporal"
+    },
+    {
+      icon: Star,
+      text: "Identifique oportunidades de crescimento",
+      category: "Crescimento"
     }
   ];
 
@@ -169,11 +193,14 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Guia do Assistente */}
-      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+      {/* Screen Buddy */}
+      <ScreenBuddy />
+
+      {/* Guia do Assistente com tema escuro */}
+      <Card className="bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-950 dark:to-gray-900 border-gray-700">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Bot className="w-5 h-5 text-blue-600" />
+          <CardTitle className="flex items-center gap-2 text-lg text-white">
+            <Bot className="w-5 h-5 text-blue-400" />
             Dasher (O Dashinho) - Seu Assistente Inteligente
             {isChatbotConfigured ? (
               <Badge variant="default" className="bg-blue-600">
@@ -181,7 +208,7 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
                 N8N Ativo
               </Badge>
             ) : (
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="bg-gray-600">
                 <WifiOff className="w-3 h-3 mr-1" />
                 Modo Local
               </Badge>
@@ -189,38 +216,21 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="text-sm text-muted-foreground">
-            <div className="flex items-start gap-2 mb-2">
-              <HelpCircle className="w-4 h-4 mt-0.5 text-blue-500" />
-              <div>
-                <p className="font-medium">Como usar o Dasher:</p>
-                <ul className="mt-1 space-y-1 text-xs">
-                  <li>• Faça perguntas sobre performance, resultados financeiros e análises</li>
-                  <li>• Use as perguntas rápidas abaixo para começar</li>
-                  <li>• Solicite insights e sugestões de melhorias estratégicas</li>
-                  <li>• Configure N8N para análises ainda mais avançadas</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
           <div>
-            <p className="text-sm font-medium mb-2">Perguntas Rápidas:</p>
-            <div className="grid grid-cols-1 gap-2">
+            <p className="text-sm font-medium mb-3 text-gray-200">Perguntas Rápidas:</p>
+            <div className="grid grid-cols-2 gap-2">
               {quickQuestions.map((question, index) => (
                 <Button
                   key={index}
                   variant="outline"
                   size="sm"
                   onClick={() => sendQuickMessage(question.text)}
-                  className="justify-start text-left h-auto p-2"
+                  className="justify-start text-left h-auto p-3 bg-gray-800 border-gray-600 hover:bg-gray-700 text-gray-200"
                   disabled={isLoading}
                 >
-                  <question.icon className="w-4 h-4 mr-2 text-blue-500" />
+                  <question.icon className="w-4 h-4 mr-2 text-blue-400" />
                   <div>
-                    <div className="text-xs text-blue-600 font-medium">{question.category}</div>
+                    <div className="text-xs text-blue-400 font-medium">{question.category}</div>
                     <div className="text-xs">{question.text}</div>
                   </div>
                 </Button>

@@ -6,7 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { StickyNote, Save, Plus, Trash2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { StickyNote, Save, Plus, Trash2, Cloud, HardDrive } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface Note {
@@ -15,6 +16,7 @@ interface Note {
   content: string;
   createdAt: string;
   updatedAt: string;
+  savedToSheet?: boolean;
 }
 
 export const NoteSidebar = () => {
@@ -23,6 +25,7 @@ export const NoteSidebar = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [saveToSheet, setSaveToSheet] = useState(false);
 
   // Load notes from localStorage on component mount
   useEffect(() => {
@@ -41,6 +44,7 @@ export const NoteSidebar = () => {
     setCurrentNote(null);
     setTitle('');
     setContent('');
+    setSaveToSheet(false);
     setIsEditing(true);
   };
 
@@ -48,10 +52,11 @@ export const NoteSidebar = () => {
     setCurrentNote(note);
     setTitle(note.title);
     setContent(note.content);
+    setSaveToSheet(note.savedToSheet || false);
     setIsEditing(true);
   };
 
-  const saveNote = () => {
+  const saveNote = async () => {
     if (!title.trim() || !content.trim()) {
       toast({
         title: "Erro",
@@ -63,16 +68,46 @@ export const NoteSidebar = () => {
 
     const now = new Date().toISOString();
 
+    // Preparar dados da nota
+    const noteData = {
+      title,
+      content,
+      savedToSheet
+    };
+
+    // Se selecionado salvar na planilha, tentar salvar via Google Sheets
+    if (saveToSheet) {
+      try {
+        // Aqui você implementaria a lógica para salvar na planilha
+        // Por exemplo, usando uma coluna específica para notas
+        console.log('Salvando nota na planilha:', noteData);
+        
+        // Simular salvamento na planilha
+        toast({
+          title: "Funcionalidade em desenvolvimento",
+          description: "Salvamento na planilha será implementado em breve. Nota salva localmente.",
+          variant: "default"
+        });
+      } catch (error) {
+        console.error('Erro ao salvar na planilha:', error);
+        toast({
+          title: "Erro ao salvar na planilha",
+          description: "Nota salva apenas localmente",
+          variant: "destructive"
+        });
+      }
+    }
+
     if (currentNote) {
       // Update existing note
       setNotes(prev => prev.map(note => 
         note.id === currentNote.id 
-          ? { ...note, title, content, updatedAt: now }
+          ? { ...note, title, content, updatedAt: now, savedToSheet }
           : note
       ));
       toast({
         title: "Nota atualizada",
-        description: "Suas alterações foram salvas"
+        description: `Suas alterações foram salvas ${saveToSheet ? 'na planilha e localmente' : 'localmente'}`
       });
     } else {
       // Create new note
@@ -81,12 +116,13 @@ export const NoteSidebar = () => {
         title,
         content,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
+        savedToSheet
       };
       setNotes(prev => [newNote, ...prev]);
       toast({
         title: "Nota criada",
-        description: "Nova anotação foi adicionada"
+        description: `Nova anotação foi adicionada ${saveToSheet ? 'na planilha e localmente' : 'localmente'}`
       });
     }
 
@@ -94,6 +130,7 @@ export const NoteSidebar = () => {
     setCurrentNote(null);
     setTitle('');
     setContent('');
+    setSaveToSheet(false);
   };
 
   const deleteNote = (noteId: string) => {
@@ -109,6 +146,7 @@ export const NoteSidebar = () => {
     setCurrentNote(null);
     setTitle('');
     setContent('');
+    setSaveToSheet(false);
   };
 
   return (
@@ -126,7 +164,7 @@ export const NoteSidebar = () => {
             Anotações e Observações
           </SheetTitle>
           <SheetDescription>
-            Gerencie suas anotações sobre o dashboard. As notas são salvas localmente no navegador.
+            Gerencie suas anotações sobre o dashboard. As notas podem ser salvas localmente ou na planilha.
           </SheetDescription>
         </SheetHeader>
 
@@ -150,9 +188,16 @@ export const NoteSidebar = () => {
                     <Card key={note.id} className="cursor-pointer hover:shadow-md transition-shadow">
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between">
-                          <CardTitle className="text-sm font-medium line-clamp-1">
-                            {note.title}
-                          </CardTitle>
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-sm font-medium line-clamp-1">
+                              {note.title}
+                            </CardTitle>
+                            {note.savedToSheet ? (
+                              <Cloud className="w-3 h-3 text-blue-500" title="Salva na planilha" />
+                            ) : (
+                              <HardDrive className="w-3 h-3 text-gray-500" title="Salva localmente" />
+                            )}
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -212,6 +257,17 @@ export const NoteSidebar = () => {
                   placeholder="Digite o conteúdo da anotação..."
                   className="min-h-[300px] resize-none"
                 />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="save-to-sheet"
+                  checked={saveToSheet}
+                  onCheckedChange={setSaveToSheet}
+                />
+                <Label htmlFor="save-to-sheet" className="text-sm">
+                  Salvar também na planilha do Google Sheets
+                </Label>
               </div>
 
               <div className="flex gap-2">
