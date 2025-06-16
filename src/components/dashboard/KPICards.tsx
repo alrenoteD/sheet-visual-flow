@@ -10,6 +10,13 @@ interface KPICardsProps {
   getUniquePromoters?: () => string[];
 }
 
+interface PromoterSummary {
+  totalVisitasPreDefinidas: number;
+  totalVisitasRealizadas: number;
+  totalValorContrato: number;
+  totalValorPago: number;
+}
+
 export const KPICards = ({ data, isConnected, getUniquePromoters }: KPICardsProps) => {
   if (!isConnected || data.length === 0) {
     return (
@@ -60,9 +67,9 @@ export const KPICards = ({ data, isConnected, getUniquePromoters }: KPICardsProp
     acc[key].totalValorPago += item.valorPago;
     
     return acc;
-  }, {} as any);
+  }, {} as Record<string, PromoterSummary>);
 
-  const totals = Object.values(promoterSummary).reduce((acc: any, promoter: any) => {
+  const totals = Object.values(promoterSummary).reduce((acc, promoter) => {
     acc.visitasPreDefinidas += promoter.totalVisitasPreDefinidas;
     acc.visitasRealizadas += promoter.totalVisitasRealizadas;
     acc.valorContrato += promoter.totalValorContrato;
@@ -79,7 +86,7 @@ export const KPICards = ({ data, isConnected, getUniquePromoters }: KPICardsProp
     ? (totals.visitasRealizadas / totals.visitasPreDefinidas) * 100 
     : 0;
 
-  const getPerformanceColor = (percentage: number) => {
+  const getPerformanceColor = (percentage: number): "default" | "secondary" | "destructive" => {
     if (percentage >= 80) return 'default';
     if (percentage >= 60) return 'secondary';
     return 'destructive';
