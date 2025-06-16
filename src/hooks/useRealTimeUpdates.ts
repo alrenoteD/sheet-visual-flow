@@ -37,7 +37,7 @@ export const useRealTimeUpdates = ({
             toast({
               title: "📊 Dados Atualizados",
               description: `Dashboard sincronizado - ${now.toLocaleTimeString('pt-BR')}`,
-              duration: 3000
+              duration: 120000
             });
           }
         }
