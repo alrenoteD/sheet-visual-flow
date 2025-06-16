@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard Refresh</title>
+  </head>
+  <body>
+    <script>
+      if (window.parent && window.parent.triggerDashboardRefresh) {
+        window.parent.triggerDashboardRefresh();
+      } else if (window.triggerDashboardRefresh) {
+        window.triggerDashboardRefresh();
+      }
+    </script>
+  </body>
+</html>
