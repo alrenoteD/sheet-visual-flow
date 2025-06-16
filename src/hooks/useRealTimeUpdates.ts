@@ -67,7 +67,7 @@ export const useRealTimeUpdates = ({
     toast({
       title: "🔄 Atualizando...",
       description: "Sincronizando dados com a planilha",
-      duration: 2000
+      duration: 120000
     });
   };
 
