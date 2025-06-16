@@ -3,6 +3,34 @@
 
 Este dashboard agora utiliza variáveis de ambiente para configuração, tornando-o mais seguro e adequado para deploy em produção.
 
+## 🚀 NOVIDADES DA VERSÃO ATUAL
+
+### ⚡ Atualizações Automáticas em Tempo Real
+- **Sincronização Automática**: O dashboard verifica alterações na planilha a cada 2 minutos
+- **Notificações**: Alertas discretos quando novos dados são detectados
+- **Botão de Sincronização Manual**: Force atualizações instantâneas quando necessário
+
+### 📊 Gráficos Avançados com Filtros Temporais
+- **Filtros de Período**: Hoje, Esta Semana, Este Mês, Este Ano, Todo Período
+- **Análise Histórica**: Gráficos que puxam dados de múltiplas páginas mensais
+- **Controle de Visibilidade**: Oculte/mostre gráficos conforme necessário
+
+### 📋 Sistema de Relatórios Avançado
+- **Relatórios Customizáveis**: Escolha quais informações incluir
+- **Formato CSV/XLSX**: Exportação em múltiplos formatos
+- **Dois Tipos**: Relatório Completo (todas as linhas) ou Consolidado (por promotor)
+
+### 🤖 Dasher - Assistente Inteligente Aprimorado
+- **Interface Renovada**: Visual mais amigável e personalizado
+- **Guia Integrado**: Instruções claras sobre como usar
+- **Perguntas Rápidas**: Botões pré-definidos para análises comuns
+- **Análises Locais**: Funciona mesmo sem configuração N8N
+
+### 🎨 Visual e Experiência
+- **Header Personalizado**: Branding Deylith.dev com espaço para logo
+- **Abas Expandidas**: Novas seções de Relatórios e Informações Avançadas
+- **Controles Visuais**: Ocultar/mostrar gráficos individualmente
+
 ## Configuração no EasyPanel
 
 ### Variáveis de Ambiente Necessárias
@@ -33,10 +61,10 @@ VITE_CHATBOT_WEBHOOK_URL=https://seu-n8n.com/webhook/dashboard-chat
 O dashboard agora trabalha com **páginas separadas para cada mês**. Cada página deve seguir o formato `YYYY-MM`:
 
 **Exemplos de nomes de páginas:**
-- `2024-01` (Janeiro 2024)
-- `2024-02` (Fevereiro 2024)
-- `2024-06` (Junho 2024)
-- `2024-12` (Dezembro 2024)
+- `2025-01` (Janeiro 2025)
+- `2025-02` (Fevereiro 2025)
+- `2025-06` (Junho 2025)
+- `2025-12` (Dezembro 2025)
 
 #### **Como Configurar as Páginas:**
 
@@ -60,13 +88,13 @@ O dashboard agora trabalha com **páginas separadas para cada mês**. Cada pági
 
 ```
 Páginas da Planilha:
-├── 2024-01 (Janeiro 2024)
-├── 2024-02 (Fevereiro 2024)
-├── 2024-03 (Março 2024)
-├── 2024-04 (Abril 2024)
-├── 2024-05 (Maio 2024)
-├── 2024-06 (Junho 2024) ← Página atual editável
-└── 2024-07 (Julho 2024)
+├── 2025-01 (Janeiro 2025)
+├── 2025-02 (Fevereiro 2025)
+├── 2025-03 (Março 2025)
+├── 2025-04 (Abril 2025)
+├── 2025-05 (Maio 2025)
+├── 2025-06 (Junho 2025) ← Página atual editável
+└── 2025-07 (Julho 2025)
 ```
 
 ### Passo 3: Configurar Permissões da Planilha
@@ -97,11 +125,11 @@ Valor: [URL do webhook N8N - opcional]
 
 4. Salve e reinicie a aplicação
 
-## Funcionalidades do Dashboard
+## 🎯 Funcionalidades Avançadas
 
 ### **Promotores Únicos vs Múltiplas Atividades**
 
-O dashboard agora trata corretamente promotores com mesmo nome:
+O dashboard trata corretamente promotores com mesmo nome como uma única pessoa, mas permite múltiplas atividades:
 
 **Exemplo Prático:**
 ```
@@ -116,116 +144,182 @@ Linha 2: João Silva | Rede XYZ | São Paulo | Marca COAMO | 15 visitas | R$ 300
 - **Total Visitas:** 25 visitas pré-definidas
 - **Valor Total:** R$ 5.000
 
-### **Controle Mensal**
+### **⚡ Atualizações em Tempo Real**
 
-- **Seletor de Mês:** Navegue entre diferentes meses
-- **Apenas Mês Atual Editável:** Proteção de dados históricos
-- **Dados Zerados:** Meses sem registros aparecem vazios (não simulados)
+- **Verificação Automática**: A cada 2 minutos o dashboard verifica alterações
+- **Sincronização Silenciosa**: Atualizações sem interromper o uso
+- **Notificações Discretas**: Alertas apenas quando há mudanças relevantes
+- **Controle Manual**: Botão "Sincronizar" para atualizações instantâneas
 
-### **Capacidades de Edição**
+### **📅 Filtros Temporais Avançados**
 
-✅ **O dashboard PODE editar a planilha quando:**
+#### **Filtros Disponíveis:**
+- **Hoje**: Mostra apenas visitas realizadas hoje
+- **Esta Semana**: Visitas da semana atual (domingo a sábado)
+- **Este Mês**: Visitas do mês corrente
+- **Este Ano**: Visitas do ano atual
+- **Todo Período**: Todos os dados disponíveis
+
+#### **Como Funcionam:**
+Os filtros analisam as "DATA VISITA X" de cada registro:
+- Se a data está dentro do período selecionado, o registro é incluído
+- Os KPIs e gráficos são recalculados automaticamente
+- Combinam com os filtros básicos (promotor, cidade, marca)
+
+### **📊 Controle de Visibilidade dos Gráficos**
+
+#### **Gráficos Visíveis por Padrão:**
+- Performance Mensal
+- Cumprimento Mensal  
+- Análise Financeira
+
+#### **Gráficos Ocultos por Padrão:**
+- Performance por Cidade
+- Distribuição por Marca
+- Ranking de Promotores
+
+**Como Usar:**
+- Clique no ícone 👁️ para ocultar um gráfico
+- Clique em "Mostrar [Nome do Gráfico]" para exibir
+
+### **📋 Sistema de Relatórios Customizável**
+
+#### **Tipos de Relatório:**
+1. **Completo**: Uma linha por registro (marca/rede/cidade)
+2. **Consolidado**: Uma linha por promotor único
+
+#### **Informações Incluíveis:**
+- ✅ Promotor/Agência
+- ✅ Rede, Cidade, Marca
+- ✅ Visitas (pré-definidas e realizadas)
+- ✅ Performance (percentual)
+- ✅ Dados Financeiros (contratos e pagamentos)
+- ✅ Datas de Visitas Individuais
+
+#### **Formatos de Exportação:**
+- **CSV**: Compatível com Excel, Google Sheets
+- **XLSX**: Formato nativo Excel (em desenvolvimento)
+
+### **🤖 Dasher - Assistente Inteligente**
+
+#### **Recursos do Dasher:**
+- **Análises Automáticas**: Performance, financeiro, sugestões
+- **Perguntas Rápidas**: Botões pré-configurados
+- **Interface Amigável**: Visual personalizado com ícone de robô
+- **Modo Duplo**: Local (básico) ou N8N (avançado)
+
+#### **Comandos Disponíveis:**
+- `"performance"` → Análise geral da equipe
+- `"financeiro"` → Resumo de valores e contratos
+- `"sugestões"` → Dicas de melhoria estratégica
+
+#### **Personalização do Ícone:**
+Para alterar o ícone do Dasher, edite o componente `DasherAssistant.tsx` e substitua o ícone `Bot` por outro do Lucide React.
+
+### **🎨 Branding e Personalização**
+
+#### **Header Personalizado:**
+- **Deylith.dev**: Nome da agência destacado
+- **Slogan**: "Agência de automações e Soluções Inteligentes com IA"
+- **Espaço para Logo**: Área reservada ao lado do nome (16x16)
+
+#### **Como Adicionar Seu Logo:**
+1. Substitua a div com classe `w-16 h-16 bg-muted/50` 
+2. Insira uma tag `<img>` com seu logo
+3. Mantenha as dimensões 64x64px para melhor resultado
+
+## 📈 Análises e Estratégias
+
+### **KPIs Automáticos Calculados:**
+- **Equipe Ativa**: Contagem de promotores únicos
+- **Performance Média**: Percentual consolidado de toda equipe
+- **Meta Alcançada**: Cumprimento baseado no período decorrido
+- **Valor Processado**: Comparação entre contratado vs pago
+
+### **Insights Profissionais:**
+- Identificação automática de promotores com baixa performance
+- Sugestões de melhoria baseadas nos dados
+- Análise de cumprimento mensal vs diário esperado
+- Projeções financeiras automáticas
+
+### **Filtros Combinados:**
+- **Básicos**: Promotor, Cidade, Marca, Rede
+- **Temporais**: Hoje, Semana, Mês, Ano, Todo Período
+- **Resultado**: Visualizações específicas para tomada de decisão
+
+## ✅ Capacidades de Edição
+
+**O dashboard PODE editar a planilha quando:**
 - Variáveis de ambiente estão configuradas corretamente
-- Planilha está compartilhada publicamente
+- Planilha está compartilhada publicamente  
 - API Key tem permissões adequadas
 
-✅ **Funcionalidades de Edição Disponíveis:**
-- Adicionar novos promotores/registros
-- Editar informações existentes
-- Adicionar/remover datas de visitas
-- Atualizar valores e contratos
-- Salvar automaticamente na planilha
+**Funcionalidades de Edição Disponíveis:**
+- ✅ Adicionar novos promotores/registros
+- ✅ Editar informações existentes
+- ✅ Adicionar/remover datas de visitas
+- ✅ Atualizar valores e contratos
+- ✅ Salvar automaticamente na planilha
+- ✅ Editor visual de datas de visitas
 
-### **Downloads e Relatórios**
+### **Edição Restrita por Mês:**
+- **Apenas Mês Atual**: Só é possível editar a página do mês corrente
+- **Histórico Protegido**: Meses anteriores são somente leitura
+- **Criação Automática**: Novas páginas são criadas conforme necessário
 
-O dashboard oferece dois tipos de relatórios em CSV:
+## 🔧 Configurações Avançadas
 
-#### **1. Relatório Completo**
-- Todos os registros individuais do mês
-- Uma linha por registro (marca/rede/cidade)
-- Inclui todas as datas de visitas
+### **Personalização do Intervalo de Atualização:**
+```javascript
+// No useRealTimeUpdates hook, altere:
+intervalMinutes: 2 // Para o intervalo desejado em minutos
+```
 
-#### **2. Resumo Consolidado**
-- Uma linha por promotor único
-- Soma total de visitas, valores, etc.
-- Lista todas as marcas/redes/cidades do promotor
+### **Configuração de Webhook N8N:**
+1. Crie um workflow no N8N
+2. Adicione um trigger "Webhook"
+3. Configure o endpoint
+4. Adicione a URL na variável `VITE_CHATBOT_WEBHOOK_URL`
 
-### Cálculos Automáticos por Promotor:
-- **Visitas Realizadas**: Conta automaticamente as datas preenchidas
-- **Percentual**: Visitas realizadas ÷ Visitas pré-definidas × 100
-- **Valor por Visita**: Valor contrato ÷ Visitas pré-definidas  
-- **Valor Pago**: Visitas realizadas × Valor por visita
+### **Customização de Gráficos:**
+- Edite os componentes em `src/components/dashboard/charts/`
+- Adicione novos gráficos seguindo os padrões existentes
+- Configure visibilidade padrão em `chartVisibility`
 
-### KPIs Disponíveis:
-- Total de promotores únicos ativos
-- Performance média consolidada da equipe
-- Cumprimento mensal de metas
-- Análise financeira (valores contratados vs pagos)
-- Distribuição por cidades, marcas e redes
-
-### Gráficos e Análises:
-- Performance individual por promotor
-- Cumprimento mensal de metas
-- Análise financeira detalhada
-- Insights profissionais automáticos
-- Chat inteligente com recomendações
-
-## Exemplo de Dados na Planilha (Página 2024-06)
-
-| PROMOTOR/AGÊNCIA | REDE | CIDADE | MARCA | VISITAS PRÉ-DEFINIDAS | TELEFONE | DATA INÍCIO | VALOR CONTRATO | DATA VISITA 1 | DATA VISITA 2 |
-|------------------|------|--------|-------|---------------------|----------|-------------|----------------|---------------|---------------|
-| João Silva | Super ABC | São Paulo | Coca-Cola | 10 | (11) 99999-1234 | 2024-06-01 | 5000.00 | 2024-06-15 | 2024-06-20 |
-| João Silva | Rede XYZ | Campinas | Pepsi | 8 | (11) 99999-1234 | 2024-06-01 | 4000.00 | 2024-06-18 | |
-
-**Resultado Automático:**
-- **Promotores Únicos**: 1 (João Silva)
-- **Total Visitas Pré-definidas**: 18
-- **Total Visitas Realizadas**: 3
-- **Performance Média**: 16.7%
-- **Valor Total Contrato**: R$ 9.000,00
-- **Valor Total Pago**: R$ 1.500,00
-
-## Status de Conexão
-
-O dashboard mostrará:
-- ✅ **Verde "Conectado"**: Tudo funcionando corretamente
-- ⚠️ **Amarelo "Desconectado"**: Configurar variáveis de ambiente
-- 📊 **Dados Vazios**: Aguardando conexão com planilha ou página vazia
-
-## Assistente Inteligente
-
-- **Com N8N**: Análises avançadas via webhook configurado
-- **Modo Local**: Respostas básicas usando apenas dados do dashboard
-- Configure `VITE_CHATBOT_WEBHOOK_URL` para habilitar integração completa
-
-## Segurança
-
-✅ **Vantagens da configuração via variáveis de ambiente:**
-- API Keys não ficam expostas no código
-- Configuração flexível por ambiente (dev/prod)
-- Maior segurança em produção
-- Facilita deploy e manutenção
-
-## Solução de Problemas
+## 🛠️ Solução de Problemas
 
 ### "Aguardando Conexão"
-1. Verifique se as variáveis de ambiente foram salvas
-2. Reinicie a aplicação no EasyPanel
-3. Confirme se os valores estão corretos
+1. ✅ Verifique se as variáveis de ambiente foram salvas
+2. ✅ Reinicie a aplicação no EasyPanel
+3. ✅ Confirme se os valores estão corretos
 
 ### "Página não encontrada"
-1. Certifique-se de que a página existe com formato `YYYY-MM`
-2. Verifique se há dados na página
-3. Crie novas páginas conforme necessário
+1. ✅ Certifique-se de que a página existe com formato `YYYY-MM`
+2. ✅ Verifique se há dados na página
+3. ✅ Crie novas páginas conforme necessário
 
-### "Falha ao conectar"
-1. Teste a API Key no Google Cloud Console
-2. Verifique se a planilha está compartilhada publicamente
-3. Confirme se o ID da planilha está correto
+### "Atualizações não funcionam"
+1. ✅ Verifique a conexão com a internet
+2. ✅ Confirme se a planilha está acessível
+3. ✅ Teste a sincronização manual
 
-### Dados não aparecem
-1. Verifique a estrutura da planilha (colunas A-H obrigatórias)
-2. Confirme se há dados na página do mês
-3. Teste o range configurado (ex: 2024-06!A1:AZ1000)
+### "Relatórios vazios"
+1. ✅ Verifique se há dados no período filtrado
+2. ✅ Confirme se os filtros estão corretos
+3. ✅ Teste com "Todo Período"
 
-Para suporte detalhado, consulte o arquivo `CONFIGURACAO_EASYPANEL.md`.
+### "Dasher não responde"
+1. ✅ Verifique se há dados carregados
+2. ✅ Teste os botões de pergunta rápida
+3. ✅ Configure N8N para respostas avançadas
+
+## 📞 Suporte
+
+Para suporte detalhado:
+- 📖 Consulte `CONFIGURACAO_EASYPANEL.md`
+- 🤖 Use o Dasher para análises automáticas
+- 🔄 Teste a sincronização manual em caso de problemas
+
+---
+
+**Powered by Deylith.dev - Agência de automações e Soluções Inteligentes com IA**
