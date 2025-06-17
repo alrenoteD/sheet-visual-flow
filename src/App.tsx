@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,7 +12,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const AuthenticatedApp = () => {
+const AuthenticatedApp: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
@@ -28,7 +29,7 @@ const AuthenticatedApp = () => {
   );
 };
 
-const App = () => (
+const App: React.FC = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
