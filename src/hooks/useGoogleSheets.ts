@@ -82,7 +82,6 @@ export const useGoogleSheets = () => {
               const [headers, ...rows] = result.values;
               
               const monthData: VisitData[] = rows.map((row: string[], index: number) => {
-                // Nova estrutura: A=ID_PROMOTOR, B=PROMOTOR/AGÊNCIA, C=REDE, etc.
                 const idPromotor = row[0] || `AUTO_${index + 1}`;
                 const promotor = row[1] || '';
                 const rede = row[2] || '';
@@ -93,7 +92,7 @@ export const useGoogleSheets = () => {
                 const dataInicio = row[7] || '';
                 const valorContrato = parseFloat(row[8]) || 0;
                 
-                const visitDates = processVisitDates(row, 9); // Datas começam na coluna I (índice 8)
+                const visitDates = processVisitDates(row, 9);
                 const visitasRealizadas = visitDates.count;
                 const percentual = visitasPreDefinidas > 0 ? (visitasRealizadas / visitasPreDefinidas) * 100 : 0;
                 const valorPorVisita = visitasPreDefinidas > 0 ? valorContrato / visitasPreDefinidas : 0;
@@ -184,7 +183,6 @@ export const useGoogleSheets = () => {
         console.log('📊 Linhas de dados brutos:', rows.length);
         
         const rawData: VisitData[] = rows.map((row: string[], index: number) => {
-          // Nova estrutura: A=ID_PROMOTOR, B=PROMOTOR/AGÊNCIA, C=REDE, etc.
           const idPromotor = row[0] || `AUTO_${index + 1}`;
           const promotor = row[1] || '';
           const rede = row[2] || '';

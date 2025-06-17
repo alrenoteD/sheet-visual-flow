@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Search, Filter, Calendar, BarChart3, Target, Phone, MapPin } from 'lucide-react';
+import { Users, Search, Filter, MapPin, Phone } from 'lucide-react';
 import { VisitData } from '@/types/VisitData';
 import { PromoterDetails } from './PromoterDetails';
 
@@ -51,7 +51,7 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
       const marcas = [...new Set(records.map(r => r.marca).filter(Boolean))];
       const cidades = [...new Set(records.map(r => r.cidade).filter(Boolean))];
       const telefones = [...new Set(records.flatMap(r => 
-        r.telefone ? r.telefone.split(',').map(t => t.trim()) : []
+        r.telefone ? r.telefone.split('\n').map(t => t.trim()) : []
       ).filter(Boolean))];
       const valorTotal = records.reduce((sum, r) => sum + r.valorContrato, 0);
 
@@ -73,7 +73,6 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
   const filteredPromoters = useMemo(() => {
     let filtered = promotersSummary;
 
-    // Filtro por busca
     if (searchTerm) {
       filtered = filtered.filter(p => 
         p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,12 +80,10 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
       );
     }
 
-    // Filtro por cidade
     if (filterCity) {
       filtered = filtered.filter(p => p.cidades.includes(filterCity));
     }
 
-    // Ordenação
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'nome':
@@ -118,7 +115,6 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users className="w-6 h-6" />
@@ -127,7 +123,6 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
         </div>
       </div>
 
-      {/* Filtros */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -184,7 +179,6 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
         </CardContent>
       </Card>
 
-      {/* Grid de Promotores */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPromoters.map((promoter) => (
           <Card 
@@ -202,7 +196,6 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
             </CardHeader>
             
             <CardContent className="space-y-4">
-              {/* Performance */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Performance:</span>
                 <Badge 
@@ -213,7 +206,6 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
                 </Badge>
               </div>
 
-              {/* Visitas */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Visitas:</span>
                 <span className="text-sm font-medium">
@@ -221,7 +213,6 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
                 </span>
               </div>
 
-              {/* Marcas */}
               <div className="space-y-1">
                 <span className="text-sm text-muted-foreground">Marcas:</span>
                 <div className="flex flex-wrap gap-1">
@@ -238,7 +229,6 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
                 </div>
               </div>
 
-              {/* Cidades */}
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
@@ -246,17 +236,15 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
                 </span>
               </div>
 
-              {/* Telefones */}
               {promoter.telefones.length > 0 && (
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">
-                    {promoter.telefones.join(', ')}
+                    {promoter.telefones.join(' | ')}
                   </span>
                 </div>
               )}
 
-              {/* Valor Total */}
               <div className="flex items-center justify-between pt-2 border-t">
                 <span className="text-sm text-muted-foreground">Valor Total:</span>
                 <span className="text-sm font-medium">

@@ -1,17 +1,230 @@
 
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Dashboard Refresh</title>
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Refresh - Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .status {
+            font-size: 1.2em;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .waiting {
+            color: #ffd700;
+        }
+        
+        .refreshing {
+            color: #90EE90;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .error {
+            color: #ff6b6b;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .config {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            text-align: left;
+        }
+        
+        .config h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+        
+        .config code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .logs {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid rgba(255, 255, 255, 0.3);
+            padding-left: 10px;
+        }
+        
+        .log-info { border-left-color: #4dabf7; }
+        .log-success { border-left-color: #51cf66; }
+        .log-error { border-left-color: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Auto Refresh</h1>
+        <div id="status" class="status waiting">
+            Aguardando sinal de refresh...
+        </div>
+        <div id="spinner" class="spinner" style="display: none;"></div>
+        
+        <div class="config">
+            <h3>📋 Como Usar</h3>
+            <p>Esta página monitora requisições HTTP para atualizar automaticamente o dashboard.</p>
+            <p><strong>Endpoint:</strong> <code>GET /refresh</code></p>
+            <p><strong>Parâmetros opcionais:</strong></p>
+            <ul>
+                <li><code>?delay=5000</code> - Delay em ms antes do refresh</li>
+                <li><code>?target=_parent</code> - Onde abrir a nova página</li>
+                <li><code>?url=https://...</code> - URL customizada para redirect</li>
+            </ul>
+        </div>
+        
+        <div class="logs">
+            <h4>📝 Logs</h4>
+            <div id="logs-container">
+                <div class="log-entry log-info">Sistema inicializado - Aguardando requisições...</div>
+            </div>
+        </div>
+    </div>
+
     <script>
-      if (window.parent && window.parent.triggerDashboardRefresh) {
-        window.parent.triggerDashboardRefresh();
-      } else if (window.triggerDashboardRefresh) {
-        window.triggerDashboardRefresh();
-      }
+        const statusEl = document.getElementById('status');
+        const spinnerEl = document.getElementById('spinner');
+        const logsContainer = document.getElementById('logs-container');
+
+        function addLog(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        function updateStatus(message, className = 'waiting') {
+            statusEl.textContent = message;
+            statusEl.className = `status ${className}`;
+        }
+
+        function showSpinner(show = true) {
+            spinnerEl.style.display = show ? 'block' : 'none';
+        }
+
+        // Verificar parâmetros da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('refresh')) {
+            const delay = parseInt(urlParams.get('delay')) || 3000;
+            const target = urlParams.get('target') || '_self';
+            const redirectUrl = urlParams.get('url') || window.location.origin;
+            
+            updateStatus(`Refresh ativado! Redirecionando em ${delay/1000}s...`, 'refreshing');
+            showSpinner(true);
+            addLog(`Refresh solicitado com delay de ${delay}ms`, 'success');
+            
+            setTimeout(() => {
+                addLog(`Redirecionando para: ${redirectUrl}`, 'success');
+                if (target === '_parent' && window.parent !== window) {
+                    window.parent.location.href = redirectUrl;
+                } else {
+                    window.location.href = redirectUrl;
+                }
+            }, delay);
+        }
+
+        // Polling para verificar requisições de refresh (simulação)
+        let pollCount = 0;
+        setInterval(() => {
+            pollCount++;
+            
+            // A cada 30 segundos, mostrar que ainda está ativo
+            if (pollCount % 30 === 0) {
+                addLog(`Sistema ativo - Verificação #${pollCount}`, 'info');
+            }
+        }, 1000);
+
+        // Detectar quando a página é carregada via HTTP request com parâmetros
+        window.addEventListener('load', () => {
+            if (window.location.search.includes('refresh')) {
+                addLog('Página carregada via requisição de refresh', 'success');
+            }
+        });
+
+        // Exemplo de como o sistema pode ser usado via fetch
+        window.refreshPage = function(options = {}) {
+            const delay = options.delay || 3000;
+            const target = options.target || '_self';
+            const url = options.url || window.location.origin;
+            
+            const refreshUrl = `${window.location.origin}/refresh.html?refresh=true&delay=${delay}&target=${target}&url=${encodeURIComponent(url)}`;
+            
+            addLog(`Executando refresh programático...`, 'info');
+            window.location.href = refreshUrl;
+        };
+
+        addLog('Sistema de auto-refresh carregado e pronto', 'success');
     </script>
-  </body>
+</body>
 </html>
