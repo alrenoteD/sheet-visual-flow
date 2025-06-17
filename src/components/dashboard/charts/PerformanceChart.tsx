@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { VisitData } from '@/types/VisitData';
 
@@ -9,77 +9,64 @@ interface PerformanceChartProps {
 }
 
 export const PerformanceChart = ({ data }: PerformanceChartProps) => {
-  // Agrupar dados por mês baseado nas datas de visitas reais
-  const monthlyData = data.reduce((acc, item) => {
-    item.datasVisitas.forEach(dateStr => {
-      if (!dateStr) return;
-      
-      const date = new Date(dateStr);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthName = date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-      
-      if (!acc[monthKey]) {
-        acc[monthKey] = {
-          month: monthName,
-          preDefinidas: 0,
-          realizadas: 0,
-          valorPago: 0
-        };
-      }
-      
-      acc[monthKey].preDefinidas += item.visitasPreDefinidas;
-      acc[monthKey].realizadas += item.visitasRealizadas;
-      acc[monthKey].valorPago += item.valorPago;
-    });
-    
-    return acc;
-  }, {} as Record<string, any>);
+  // Processar dados do mês atual apenas
+  const processCurrentMonthData = () => {
+    if (data.length === 0) return [];
 
-  // Converter para array e ordenar por data
-  const performanceData = Object.entries(monthlyData)
-    .map(([key, value]) => value)
-    .sort((a, b) => {
-      // Ordenar pelos nomes dos meses
-      const aDate = new Date(a.month);
-      const bDate = new Date(b.month);
-      return aDate.getTime() - bDate.getTime();
-    });
+    // Agrupar por dia no mês atual
+    const dailyData = data.reduce((acc, item) => {
+      item.datasVisitas.forEach(dateStr => {
+        if (!dateStr) return;
+        
+        try {
+          const date = new Date(dateStr);
+          const dayKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+          const dayLabel = date.getDate().toString();
+          
+          if (!acc[dayKey]) {
+            acc[dayKey] = {
+              day: dayLabel,
+              visitas: 0,
+              promotores: new Set(),
+              date: date
+            };
+          }
+          
+          acc[dayKey].visitas++;
+          acc[dayKey].promotores.add(item.promotor.toLowerCase());
+        } catch (error) {
+          console.warn('Data inválida:', dateStr);
+        }
+      });
+      
+      return acc;
+    }, {} as Record<string, any>);
 
-  // Se não há dados agrupados por mês, mostrar dados atuais
-  if (performanceData.length === 0) {
-    const currentData = [{
-      month: 'Atual',
-      preDefinidas: data.reduce((sum, item) => sum + item.visitasPreDefinidas, 0),
-      realizadas: data.reduce((sum, item) => sum + item.visitasRealizadas, 0),
-      valorPago: data.reduce((sum, item) => sum + item.valorPago, 0)
-    }];
-    
+    // Converter para array e ordenar por data
+    return Object.values(dailyData)
+      .map((item: any) => ({
+        day: item.day,
+        visitas: item.visitas,
+        promotores: item.promotores.size,
+        date: item.date
+      }))
+      .sort((a: any, b: any) => a.date.getTime() - b.date.getTime())
+      .slice(0, 31); // Máximo 31 dias
+  };
+
+  const chartData = processCurrentMonthData();
+
+  if (chartData.length === 0) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
-            Performance por Período
+            Performance por Dia
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={currentData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Legend />
-              <Line type="monotone" dataKey="preDefinidas" stroke="hsl(var(--primary))" strokeWidth={3} name="Visitas Pré-definidas" />
-              <Line type="monotone" dataKey="realizadas" stroke="hsl(var(--chart-1))" strokeWidth={3} name="Visitas Realizadas" />
-            </LineChart>
-          </ResponsiveContainer>
+        <CardContent className="text-center py-8">
+          <p className="text-muted-foreground">Nenhum dado de performance disponível</p>
         </CardContent>
       </Card>
     );
@@ -90,26 +77,41 @@ export const PerformanceChart = ({ data }: PerformanceChartProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5" />
-          Performance Mensal
+          Performance Diária - Mês Atual
         </CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={performanceData}>
+          <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+            <XAxis 
+              dataKey="day" 
+              stroke="hsl(var(--muted-foreground))"
+              fontSize={12}
+            />
             <YAxis stroke="hsl(var(--muted-foreground))" />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'hsl(var(--card))', 
                 border: '1px solid hsl(var(--border))',
                 borderRadius: '8px'
-              }} 
+              }}
+              labelFormatter={(value) => `Dia ${value}`}
             />
             <Legend />
-            <Line type="monotone" dataKey="preDefinidas" stroke="hsl(var(--primary))" strokeWidth={3} name="Visitas Pré-definidas" />
-            <Line type="monotone" dataKey="realizadas" stroke="hsl(var(--chart-1))" strokeWidth={3} name="Visitas Realizadas" />
-          </LineChart>
+            <Bar 
+              dataKey="visitas" 
+              fill="hsl(var(--primary))" 
+              name="Visitas Realizadas"
+              radius={[4, 4, 0, 0]}
+            />
+            <Bar 
+              dataKey="promotores" 
+              fill="hsl(var(--chart-1))" 
+              name="Promotores Ativos"
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

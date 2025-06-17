@@ -58,8 +58,12 @@ export const useTemporalCharts = ({ data }: UseTemporalChartsProps) => {
     const filtered = data.filter(item => {
       return item.datasVisitas.some(visitDate => {
         if (!visitDate) return false;
-        const date = new Date(visitDate);
-        return date >= range.start && date <= range.end;
+        try {
+          const date = new Date(visitDate);
+          return date >= range.start && date <= range.end;
+        } catch {
+          return false;
+        }
       });
     });
 

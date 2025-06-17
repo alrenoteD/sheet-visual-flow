@@ -22,10 +22,12 @@ import { MonthSelector } from '@/components/dashboard/MonthSelector';
 import { DashboardHeader } from '@/components/dashboard/Header';
 import { AdvancedReports } from '@/components/dashboard/reports/AdvancedReports';
 import { VisitData } from '@/types/VisitData';
+import { AdvancedCharts } from '@/components/dashboard/advanced/AdvancedCharts';
 
 const Index = () => {
   const { 
     data, 
+    allPagesData,
     loading, 
     isConnected, 
     loadData, 
@@ -126,10 +128,11 @@ const Index = () => {
 
             {/* Main Dashboard Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-9">
+              <TabsList className="grid w-full grid-cols-10">
                 <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
                 <TabsTrigger value="analytics">Análises</TabsTrigger>
+                <TabsTrigger value="advanced">Avançado</TabsTrigger>
                 <TabsTrigger value="ranking">Rankings</TabsTrigger>
                 <TabsTrigger value="financial">Financeiro</TabsTrigger>
                 <TabsTrigger value="insights">Insights</TabsTrigger>
@@ -338,6 +341,16 @@ const Index = () => {
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">Nenhum dado analítico disponível para o mês selecionado.</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="advanced" className="space-y-6">
+                {allPagesData.length > 0 ? (
+                  <AdvancedCharts data={allPagesData} />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Carregando dados de todas as páginas...</p>
                   </div>
                 )}
               </TabsContent>

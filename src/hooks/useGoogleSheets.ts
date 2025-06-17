@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { VisitData, GoogleSheetsConfig } from '@/types/VisitData';
 
 export const useGoogleSheets = () => {
   const [data, setData] = useState<VisitData[]>([]);
+  const [allPagesData, setAllPagesData] = useState<VisitData[]>([]);
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState<GoogleSheetsConfig | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -75,6 +75,66 @@ export const useGoogleSheets = () => {
       }
     } catch (error) {
       console.warn('⚠️ Erro ao carregar páginas mensais:', error);
+    }
+  };
+
+  const loadAllPagesData = async (configToUse?: GoogleSheetsConfig) => {
+    const currentConfig = configToUse || config;
+    if (!currentConfig || availableMonths.length === 0) return;
+
+    try {
+      const allData: VisitData[] = [];
+      
+      for (const month of availableMonths) {
+        try {
+          const range = `${month}!A1:AZ1000`;
+          const url = `https://sheets.googleapis.com/v4/spreadsheets/${currentConfig.spreadsheetId}/values/${range}?key=${currentConfig.apiKey}`;
+          const response = await fetch(url);
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.values && result.values.length > 1) {
+              const [headers, ...rows] = result.values;
+              
+              const monthData: VisitData[] = rows.map((row: string[], index: number) => {
+                const visitasPreDefinidas = parseInt(row[4]) || 0;
+                const visitDates = processVisitDates(row, 8);
+                const visitasRealizadas = visitDates.count;
+                const percentual = visitasPreDefinidas > 0 ? (visitasRealizadas / visitasPreDefinidas) * 100 : 0;
+                const valorContrato = parseFloat(row[7]) || 0;
+                const valorPorVisita = visitasPreDefinidas > 0 ? valorContrato / visitasPreDefinidas : 0;
+                const valorPago = visitasRealizadas * valorPorVisita;
+
+                return {
+                  id: `${month}-${index + 1}`,
+                  promotor: row[0] || '',
+                  rede: row[1] || '',
+                  cidade: row[2] || '',
+                  marca: row[3] || '',
+                  visitasPreDefinidas,
+                  visitasRealizadas,
+                  percentual,
+                  telefone: row[5] || '',
+                  dataInicio: row[6] || '',
+                  valorContrato,
+                  valorPorVisita,
+                  valorPago,
+                  datasVisitas: visitDates.dates
+                };
+              }).filter(item => item.promotor.trim() !== '');
+              
+              allData.push(...monthData);
+            }
+          }
+        } catch (error) {
+          console.warn(`Erro ao carregar página ${month}:`, error);
+        }
+      }
+      
+      setAllPagesData(allData);
+      console.log(`📊 Dados de todas as páginas carregados: ${allData.length} registros`);
+    } catch (error) {
+      console.error('Erro ao carregar dados de todas as páginas:', error);
     }
   };
 
@@ -167,7 +227,7 @@ export const useGoogleSheets = () => {
             valorPago,
             datasVisitas: visitDates.dates
           };
-        }).filter(item => item.promotor.trim() !== ''); // Filtrar linhas vazias
+        }).filter(item => item.promotor.trim() !== '');
         
         const consolidatedData = consolidatePromoters(rawData);
         const uniquePromotersCount = getUniquePromoters(consolidatedData).length;
@@ -175,6 +235,9 @@ export const useGoogleSheets = () => {
         setData(consolidatedData);
         setIsConnected(true);
         console.log(`✅ Dados carregados para ${targetMonth}: ${consolidatedData.length} registros (${uniquePromotersCount} promotores únicos)`);
+        
+        // Carregar dados de todas as páginas também
+        loadAllPagesData(currentConfig);
         
         toast({
           title: "Dados Carregados",
@@ -291,6 +354,7 @@ export const useGoogleSheets = () => {
 
   return {
     data,
+    allPagesData,
     loading,
     config,
     isConnected,
