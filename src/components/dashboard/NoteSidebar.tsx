@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { StickyNote, Save, Plus, Trash2, Cloud, HardDrive } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -72,7 +73,7 @@ export const NoteSidebar = () => {
     const noteData = {
       title,
       content,
-      savedToSheet
+      saveToSheet
     };
 
     // Se selecionado salvar na planilha, tentar salvar via Google Sheets
@@ -102,7 +103,7 @@ export const NoteSidebar = () => {
       // Update existing note
       setNotes(prev => prev.map(note => 
         note.id === currentNote.id 
-          ? { ...note, title, content, updatedAt: now, savedToSheet }
+          ? { ...note, title, content, updatedAt: now, savedToSheet: saveToSheet }
           : note
       ));
       toast({
@@ -117,7 +118,7 @@ export const NoteSidebar = () => {
         content,
         createdAt: now,
         updatedAt: now,
-        savedToSheet
+        savedToSheet: saveToSheet
       };
       setNotes(prev => [newNote, ...prev]);
       toast({
@@ -150,139 +151,155 @@ export const NoteSidebar = () => {
   };
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <StickyNote className="w-4 h-4" />
-          Anotações
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px]">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <StickyNote className="w-5 h-5" />
-            Anotações e Observações
-          </SheetTitle>
-          <SheetDescription>
-            Gerencie suas anotações sobre o dashboard. As notas podem ser salvas localmente ou na planilha.
-          </SheetDescription>
-        </SheetHeader>
+    <TooltipProvider>
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <StickyNote className="w-4 h-4" />
+            Anotações
+          </Button>
+        </SheetTrigger>
+        <SheetContent className="w-[400px] sm:w-[540px]">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <StickyNote className="w-5 h-5" />
+              Anotações e Observações
+            </SheetTitle>
+            <SheetDescription>
+              Gerencie suas anotações sobre o dashboard. As notas podem ser salvas localmente ou na planilha.
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="mt-6 space-y-4">
-          {!isEditing ? (
-            <>
-              <Button onClick={createNewNote} className="w-full gap-2">
-                <Plus className="w-4 h-4" />
-                Nova Anotação
-              </Button>
+          <div className="mt-6 space-y-4">
+            {!isEditing ? (
+              <>
+                <Button onClick={createNewNote} className="w-full gap-2">
+                  <Plus className="w-4 h-4" />
+                  Nova Anotação
+                </Button>
 
-              <div className="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto">
-                {notes.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <StickyNote className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhuma anotação ainda</p>
-                    <p className="text-sm">Clique em "Nova Anotação" para começar</p>
-                  </div>
-                ) : (
-                  notes.map(note => (
-                    <Card key={note.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            <CardTitle className="text-sm font-medium line-clamp-1">
-                              {note.title}
-                            </CardTitle>
-                            {note.savedToSheet ? (
-                              <Cloud className="w-3 h-3 text-blue-500" title="Salva na planilha" />
-                            ) : (
-                              <HardDrive className="w-3 h-3 text-gray-500" title="Salva localmente" />
-                            )}
+                <div className="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto">
+                  {notes.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <StickyNote className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhuma anotação ainda</p>
+                      <p className="text-sm">Clique em "Nova Anotação" para começar</p>
+                    </div>
+                  ) : (
+                    notes.map(note => (
+                      <Card key={note.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-sm font-medium line-clamp-1">
+                                {note.title}
+                              </CardTitle>
+                              {note.savedToSheet ? (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Cloud className="w-3 h-3 text-blue-500" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Salva na planilha</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <HardDrive className="w-3 h-3 text-gray-500" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Salva localmente</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNote(note.id);
+                              }}
+                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           </div>
+                          <CardDescription className="text-xs">
+                            {new Date(note.updatedAt).toLocaleDateString('pt-BR')} às{' '}
+                            {new Date(note.updatedAt).toLocaleTimeString('pt-BR', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
+                            {note.content}
+                          </p>
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteNote(note.id);
-                            }}
-                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            onClick={() => editNote(note)}
+                            className="w-full text-xs"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            Editar
                           </Button>
-                        </div>
-                        <CardDescription className="text-xs">
-                          {new Date(note.updatedAt).toLocaleDateString('pt-BR')} às{' '}
-                          {new Date(note.updatedAt).toLocaleTimeString('pt-BR', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-                          {note.content}
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => editNote(note)}
-                          className="w-full text-xs"
-                        >
-                          Editar
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="note-title">Título</Label>
-                <Input
-                  id="note-title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Digite o título da anotação"
-                />
-              </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="note-title">Título</Label>
+                  <Input
+                    id="note-title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Digite o título da anotação"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="note-content">Conteúdo</Label>
-                <Textarea
-                  id="note-content"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Digite o conteúdo da anotação..."
-                  className="min-h-[300px] resize-none"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="note-content">Conteúdo</Label>
+                  <Textarea
+                    id="note-content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Digite o conteúdo da anotação..."
+                    className="min-h-[300px] resize-none"
+                  />
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="save-to-sheet"
-                  checked={saveToSheet}
-                  onCheckedChange={setSaveToSheet}
-                />
-                <Label htmlFor="save-to-sheet" className="text-sm">
-                  Salvar também na planilha do Google Sheets
-                </Label>
-              </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="save-to-sheet"
+                    checked={saveToSheet}
+                    onCheckedChange={setSaveToSheet}
+                  />
+                  <Label htmlFor="save-to-sheet" className="text-sm">
+                    Salvar também na planilha do Google Sheets
+                  </Label>
+                </div>
 
-              <div className="flex gap-2">
-                <Button onClick={saveNote} className="flex-1 gap-2">
-                  <Save className="w-4 h-4" />
-                  Salvar
-                </Button>
-                <Button variant="outline" onClick={cancelEdit} className="flex-1">
-                  Cancelar
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={saveNote} className="flex-1 gap-2">
+                    <Save className="w-4 h-4" />
+                    Salvar
+                  </Button>
+                  <Button variant="outline" onClick={cancelEdit} className="flex-1">
+                    Cancelar
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </TooltipProvider>
   );
 };
