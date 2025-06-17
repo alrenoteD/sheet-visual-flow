@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useTemporalCharts } from '@/hooks/useTemporalCharts';
@@ -38,7 +37,7 @@ export default function Index() {
   const [activePeriod, setActivePeriod] = useState('todo-periodo');
   const [shouldShowMonthlyCharts, setShouldShowMonthlyCharts] = useState(true);
   
-  const { chartData } = useTemporalCharts(allPagesData);
+  const { chartData } = useTemporalCharts({ data: allPagesData });
 
   React.useEffect(() => {
     setFilteredData(data);
