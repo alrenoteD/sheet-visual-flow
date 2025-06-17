@@ -30,7 +30,7 @@ export default function Index() {
     currentMonth, 
     availableMonths, 
     changeMonth,
-    refreshData
+    loadData
   } = useGoogleSheets();
   
   const [filteredData, setFilteredData] = useState(data);
@@ -38,7 +38,7 @@ export default function Index() {
   const [activePeriod, setActivePeriod] = useState('todo-periodo');
   const [shouldShowMonthlyCharts, setShouldShowMonthlyCharts] = useState(true);
   
-  const { chartData } = useTemporalCharts(allPagesData, activePeriod);
+  const { chartData } = useTemporalCharts(allPagesData);
 
   React.useEffect(() => {
     setFilteredData(data);
@@ -70,9 +70,6 @@ export default function Index() {
                 <DashboardFilters 
                   data={data}
                   onFiltersChange={handleFilterChange}
-                  currentMonth={currentMonth}
-                  availableMonths={availableMonths}
-                  onMonthChange={changeMonth}
                 />
               </div>
               <div className="lg:col-span-1">
@@ -135,7 +132,7 @@ export default function Index() {
       <div className="container mx-auto px-4 py-6">
         <DashboardHeader 
           isConnected={isConnected} 
-          onRefresh={refreshData}
+          onRefresh={loadData}
         />
         
         <div className="mb-6">
@@ -143,7 +140,7 @@ export default function Index() {
             isConnected={isConnected} 
             loading={loading} 
             dataCount={data.length}
-            onRefresh={refreshData}
+            onRefresh={loadData}
           />
         </div>
 
