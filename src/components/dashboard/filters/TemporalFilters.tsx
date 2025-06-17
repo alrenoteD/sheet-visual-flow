@@ -1,52 +1,72 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Filter, BarChart3 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, Clock } from 'lucide-react';
 
 interface TemporalFiltersProps {
   onFilterChange: (period: string) => void;
   activePeriod: string;
+  onChartVisibilityChange?: (shouldShowMonthlyCharts: boolean) => void;
 }
 
-export const TemporalFilters = ({ onFilterChange, activePeriod }: TemporalFiltersProps) => {
+export const TemporalFilters = ({ 
+  onFilterChange, 
+  activePeriod, 
+  onChartVisibilityChange 
+}: TemporalFiltersProps) => {
   const periods = [
-    { key: 'hoje', label: 'Hoje', icon: Clock },
-    { key: 'esta-semana', label: 'Esta Semana', icon: Calendar },
-    { key: 'este-mes', label: 'Este Mês', icon: Calendar },
+    { key: 'todo-periodo', label: 'Todo Período', icon: Calendar },
     { key: 'este-ano', label: 'Este Ano', icon: Calendar },
-    { key: 'todo-periodo', label: 'Todo Período', icon: Filter }
+    { key: 'este-mes', label: 'Este Mês', icon: Calendar },
+    { key: 'esta-semana', label: 'Esta Semana', icon: Clock },
+    { key: 'hoje', label: 'Hoje', icon: Clock },
   ];
+
+  const handlePeriodChange = (period: string) => {
+    onFilterChange(period);
+    
+    // Notificar sobre visibilidade dos gráficos mensais
+    const shouldShowMonthlyCharts = period === 'este-ano' || period === 'todo-periodo';
+    if (onChartVisibilityChange) {
+      onChartVisibilityChange(shouldShowMonthlyCharts);
+    }
+  };
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="w-4 h-4" />
-          Filtros Temporais dos Gráficos
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Calendar className="w-5 h-5" />
+          Filtros Temporais para Gráficos
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-2">
-          {periods.map(period => (
-            <Button
-              key={period.key}
-              variant={activePeriod === period.key ? "default" : "outline"}
-              size="sm"
-              onClick={() => onFilterChange(period.key)}
-              className="flex items-center gap-1"
-            >
-              <period.icon className="w-3 h-3" />
-              {period.label}
-              {activePeriod === period.key && (
-                <Badge variant="secondary" className="ml-1 text-xs">Ativo</Badge>
-              )}
-            </Button>
-          ))}
+          {periods.map((period) => {
+            const Icon = period.icon;
+            return (
+              <Button
+                key={period.key}
+                variant={activePeriod === period.key ? "default" : "outline"}
+                size="sm"
+                onClick={() => handlePeriodChange(period.key)}
+                className="flex items-center gap-2"
+              >
+                <Icon className="w-4 h-4" />
+                {period.label}
+              </Button>
+            );
+          })}
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          * Filtros aplicados apenas aos gráficos, não afetam KPIs nem outras métricas
-        </p>
+        
+        <div className="mt-4 text-sm text-muted-foreground">
+          <p>
+            ℹ️ Filtros temporais aplicam-se apenas aos gráficos. 
+            {activePeriod !== 'este-ano' && activePeriod !== 'todo-periodo' && (
+              <span className="text-orange-600"> Gráficos de comparação mensal estão ocultos neste filtro.</span>
+            )}
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

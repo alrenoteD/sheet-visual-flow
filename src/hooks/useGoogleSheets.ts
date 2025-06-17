@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { VisitData, GoogleSheetsConfig } from '@/types/VisitData';
@@ -12,27 +13,12 @@ export const useGoogleSheets = () => {
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
 
   useEffect(() => {
-    // Verificar se as variáveis de ambiente estão configuradas
     const apiKey = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY;
     const spreadsheetId = import.meta.env.VITE_GOOGLE_SHEETS_SPREADSHEET_ID;
     const range = import.meta.env.VITE_GOOGLE_SHEETS_RANGE || 'Dados!A1:AZ1000';
 
     console.log('🔍 Verificando configurações do Google Sheets...');
     
-    if (!apiKey) {
-      console.warn('⚠️ VITE_GOOGLE_SHEETS_API_KEY não configurada nas variáveis de ambiente');
-      console.log('📋 Configure no EasyPanel: Variáveis de Ambiente > VITE_GOOGLE_SHEETS_API_KEY');
-    } else {
-      console.log('✅ VITE_GOOGLE_SHEETS_API_KEY configurada');
-    }
-    
-    if (!spreadsheetId) {
-      console.warn('⚠️ VITE_GOOGLE_SHEETS_SPREADSHEET_ID não configurada nas variáveis de ambiente');
-      console.log('📋 Configure no EasyPanel: Variáveis de Ambiente > VITE_GOOGLE_SHEETS_SPREADSHEET_ID');
-    } else {
-      console.log('✅ VITE_GOOGLE_SHEETS_SPREADSHEET_ID configurada');
-    }
-
     if (apiKey && spreadsheetId) {
       const envConfig = { apiKey, spreadsheetId, range };
       setConfig(envConfig);
@@ -43,7 +29,6 @@ export const useGoogleSheets = () => {
       });
     } else {
       console.log('❌ Configuração incompleta - Dashboard aguardando variáveis de ambiente');
-      console.log('📖 Consulte: public/CONFIGURACAO_GOOGLE_SHEETS.md para instruções');
       setIsConnected(false);
       setData([]);
     }
@@ -97,25 +82,35 @@ export const useGoogleSheets = () => {
               const [headers, ...rows] = result.values;
               
               const monthData: VisitData[] = rows.map((row: string[], index: number) => {
-                const visitasPreDefinidas = parseInt(row[4]) || 0;
-                const visitDates = processVisitDates(row, 8);
+                // Nova estrutura: A=ID_PROMOTOR, B=PROMOTOR/AGÊNCIA, C=REDE, etc.
+                const idPromotor = row[0] || `AUTO_${index + 1}`;
+                const promotor = row[1] || '';
+                const rede = row[2] || '';
+                const cidade = row[3] || '';
+                const marca = row[4] || '';
+                const visitasPreDefinidas = parseInt(row[5]) || 0;
+                const telefone = row[6] || '';
+                const dataInicio = row[7] || '';
+                const valorContrato = parseFloat(row[8]) || 0;
+                
+                const visitDates = processVisitDates(row, 9); // Datas começam na coluna I (índice 8)
                 const visitasRealizadas = visitDates.count;
                 const percentual = visitasPreDefinidas > 0 ? (visitasRealizadas / visitasPreDefinidas) * 100 : 0;
-                const valorContrato = parseFloat(row[7]) || 0;
                 const valorPorVisita = visitasPreDefinidas > 0 ? valorContrato / visitasPreDefinidas : 0;
                 const valorPago = visitasRealizadas * valorPorVisita;
 
                 return {
-                  id: `${month}-${index + 1}`,
-                  promotor: row[0] || '',
-                  rede: row[1] || '',
-                  cidade: row[2] || '',
-                  marca: row[3] || '',
+                  id: `${month}-${idPromotor}-${index + 1}`,
+                  idPromotor,
+                  promotor,
+                  rede,
+                  cidade,
+                  marca,
                   visitasPreDefinidas,
                   visitasRealizadas,
                   percentual,
-                  telefone: row[5] || '',
-                  dataInicio: row[6] || '',
+                  telefone,
+                  dataInicio,
                   valorContrato,
                   valorPorVisita,
                   valorPago,
@@ -138,7 +133,7 @@ export const useGoogleSheets = () => {
     }
   };
 
-  const processVisitDates = (row: string[], startIndex: number = 8): { dates: string[], count: number } => {
+  const processVisitDates = (row: string[], startIndex: number = 9): { dates: string[], count: number } => {
     const dates: string[] = [];
     for (let i = startIndex; i < row.length; i++) {
       if (row[i] && row[i].trim() !== '') {
@@ -146,20 +141,6 @@ export const useGoogleSheets = () => {
       }
     }
     return { dates, count: dates.length };
-  };
-
-  const consolidatePromoters = (rawData: VisitData[]): VisitData[] => {
-    // Não consolidar mais - manter registros separados por marca/rede/cidade
-    // mas agrupar por promotor para contagem de pessoas únicas
-    return rawData.map((item, index) => ({
-      ...item,
-      id: `${currentMonth}-${index + 1}` // ID único por mês
-    }));
-  };
-
-  const getUniquePromoters = (data: VisitData[]): string[] => {
-    const uniqueNames = new Set(data.map(item => item.promotor.trim().toLowerCase()));
-    return Array.from(uniqueNames);
   };
 
   const loadData = async (configToUse?: GoogleSheetsConfig, monthSheet?: string) => {
@@ -203,25 +184,35 @@ export const useGoogleSheets = () => {
         console.log('📊 Linhas de dados brutos:', rows.length);
         
         const rawData: VisitData[] = rows.map((row: string[], index: number) => {
-          const visitasPreDefinidas = parseInt(row[4]) || 0;
-          const visitDates = processVisitDates(row, 8);
+          // Nova estrutura: A=ID_PROMOTOR, B=PROMOTOR/AGÊNCIA, C=REDE, etc.
+          const idPromotor = row[0] || `AUTO_${index + 1}`;
+          const promotor = row[1] || '';
+          const rede = row[2] || '';
+          const cidade = row[3] || '';
+          const marca = row[4] || '';
+          const visitasPreDefinidas = parseInt(row[5]) || 0;
+          const telefone = row[6] || '';
+          const dataInicio = row[7] || '';
+          const valorContrato = parseFloat(row[8]) || 0;
+          
+          const visitDates = processVisitDates(row, 9);
           const visitasRealizadas = visitDates.count;
           const percentual = visitasPreDefinidas > 0 ? (visitasRealizadas / visitasPreDefinidas) * 100 : 0;
-          const valorContrato = parseFloat(row[7]) || 0;
           const valorPorVisita = visitasPreDefinidas > 0 ? valorContrato / visitasPreDefinidas : 0;
           const valorPago = visitasRealizadas * valorPorVisita;
 
           return {
-            id: `${targetMonth}-${index + 1}`,
-            promotor: row[0] || '',
-            rede: row[1] || '',
-            cidade: row[2] || '',
-            marca: row[3] || '',
+            id: `${targetMonth}-${idPromotor}-${index + 1}`,
+            idPromotor,
+            promotor,
+            rede,
+            cidade,
+            marca,
             visitasPreDefinidas,
             visitasRealizadas,
             percentual,
-            telefone: row[5] || '',
-            dataInicio: row[6] || '',
+            telefone,
+            dataInicio,
             valorContrato,
             valorPorVisita,
             valorPago,
@@ -229,19 +220,17 @@ export const useGoogleSheets = () => {
           };
         }).filter(item => item.promotor.trim() !== '');
         
-        const consolidatedData = consolidatePromoters(rawData);
-        const uniquePromotersCount = getUniquePromoters(consolidatedData).length;
+        const uniquePromotersCount = getUniquePromoters(rawData).length;
         
-        setData(consolidatedData);
+        setData(rawData);
         setIsConnected(true);
-        console.log(`✅ Dados carregados para ${targetMonth}: ${consolidatedData.length} registros (${uniquePromotersCount} promotores únicos)`);
+        console.log(`✅ Dados carregados para ${targetMonth}: ${rawData.length} registros (${uniquePromotersCount} promotores únicos)`);
         
-        // Carregar dados de todas as páginas também
         loadAllPagesData(currentConfig);
         
         toast({
           title: "Dados Carregados",
-          description: `${consolidatedData.length} registros de ${uniquePromotersCount} promotores únicos - ${targetMonth}`
+          description: `${rawData.length} registros de ${uniquePromotersCount} promotores únicos - ${targetMonth}`
         });
       } else {
         console.warn(`⚠️ Nenhum dado encontrado na página '${targetMonth}'`);
@@ -269,14 +258,14 @@ export const useGoogleSheets = () => {
     }
   };
 
+  const getUniquePromoters = (data: VisitData[]): string[] => {
+    const uniqueIds = new Set(data.map(item => item.idPromotor?.toLowerCase() || item.promotor.trim().toLowerCase()));
+    return Array.from(uniqueIds);
+  };
+
   const updateData = async (updatedData: VisitData[]) => {
     if (!config) {
       console.error('❌ Configuração do Google Sheets não disponível para atualização');
-      toast({
-        title: "Erro de Configuração",
-        description: "Configuração do Google Sheets não encontrada",
-        variant: "destructive"
-      });
       return;
     }
 
@@ -286,12 +275,13 @@ export const useGoogleSheets = () => {
     try {
       const values = [
         [
-          'PROMOTOR/AGÊNCIA', 'REDE', 'CIDADE', 'MARCA', 'VISITAS PRÉ-DEFINIDAS', 
+          'ID_PROMOTOR', 'PROMOTOR/AGÊNCIA', 'REDE', 'CIDADE', 'MARCA', 'VISITAS PRÉ-DEFINIDAS', 
           'TELEFONE', 'DATA INÍCIO', 'VALOR CONTRATO',
           ...Array.from({length: 50}, (_, i) => `DATA VISITA ${i + 1}`)
         ],
         ...updatedData.map(item => {
           const row = [
+            item.idPromotor || '',
             item.promotor,
             item.rede,
             item.cidade,
@@ -302,7 +292,6 @@ export const useGoogleSheets = () => {
             item.valorContrato.toString()
           ];
           
-          // Adicionar todas as datas de visita
           for (let i = 0; i < 50; i++) {
             row.push(item.datasVisitas[i] || '');
           }

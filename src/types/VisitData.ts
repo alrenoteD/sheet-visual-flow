@@ -1,6 +1,7 @@
 
 export interface VisitData {
   id: string;
+  idPromotor?: string; // Nova propriedade para ID interno do promotor
   promotor: string;
   rede: string;
   cidade: string;

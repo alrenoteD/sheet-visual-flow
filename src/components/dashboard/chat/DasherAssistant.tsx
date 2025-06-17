@@ -1,12 +1,14 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, Bot, User, Wifi, WifiOff, TrendingUp, BarChart3, Users, MapPin, Star, Target, DollarSign, Calendar } from 'lucide-react';
+import { MessageCircle, Send, Bot, User, Wifi, WifiOff, TrendingUp, BarChart3, Users, MapPin, Star, Target, DollarSign, Calendar, Volume2, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { VisitData } from '@/types/VisitData';
 import { ScreenBuddy } from './ScreenBuddy';
+import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 
 interface Message {
   id: string;
@@ -31,6 +33,7 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const { generateAudio, isLoading: isLoadingAudio, hasAudio, isTTSConfigured } = useTextToSpeech();
   const chatbotWebhookUrl = import.meta.env.VITE_CHATBOT_WEBHOOK_URL;
   const isChatbotConfigured = !!chatbotWebhookUrl;
 
@@ -74,6 +77,26 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
       icon: Star,
       text: "Identifique oportunidades de crescimento",
       category: "Crescimento"
+    },
+    {
+      icon: BarChart3,
+      text: "Compare performance entre marcas",
+      category: "Comparativo"
+    },
+    {
+      icon: Users,
+      text: "Quais promotores estão abaixo da meta?",
+      category: "Alertas"
+    },
+    {
+      icon: TrendingUp,
+      text: "Tendências de visitas dos últimos meses",
+      category: "Tendências"
+    },
+    {
+      icon: Target,
+      text: "Calcule o ROI por promotor",
+      category: "ROI"
     }
   ];
 
@@ -197,27 +220,35 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
       <ScreenBuddy />
 
       {/* Guia do Assistente com tema escuro */}
-      <Card className="bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-950 dark:to-gray-900 border-gray-700">
+      <Card className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 border-slate-700">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg text-white">
             <Bot className="w-5 h-5 text-blue-400" />
             Dasher (O Dashinho) - Seu Assistente Inteligente
-            {isChatbotConfigured ? (
-              <Badge variant="default" className="bg-blue-600">
-                <Wifi className="w-3 h-3 mr-1" />
-                N8N Ativo
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="bg-gray-600">
-                <WifiOff className="w-3 h-3 mr-1" />
-                Modo Local
-              </Badge>
-            )}
+            <div className="flex gap-2">
+              {isChatbotConfigured ? (
+                <Badge variant="default" className="bg-blue-600">
+                  <Wifi className="w-3 h-3 mr-1" />
+                  N8N Ativo
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-slate-600">
+                  <WifiOff className="w-3 h-3 mr-1" />
+                  Modo Local
+                </Badge>
+              )}
+              {isTTSConfigured && (
+                <Badge variant="default" className="bg-green-600">
+                  <Volume2 className="w-3 h-3 mr-1" />
+                  TTS Ativo
+                </Badge>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <p className="text-sm font-medium mb-3 text-gray-200">Perguntas Rápidas:</p>
+            <p className="text-sm font-medium mb-3 text-slate-200">Perguntas Rápidas:</p>
             <div className="grid grid-cols-2 gap-2">
               {quickQuestions.map((question, index) => (
                 <Button
@@ -225,7 +256,7 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
                   variant="outline"
                   size="sm"
                   onClick={() => sendQuickMessage(question.text)}
-                  className="justify-start text-left h-auto p-3 bg-gray-800 border-gray-600 hover:bg-gray-700 text-gray-200"
+                  className="justify-start text-left h-auto p-3 bg-slate-800 border-slate-600 hover:bg-slate-700 text-slate-200"
                   disabled={isLoading}
                 >
                   <question.icon className="w-4 h-4 mr-2 text-blue-400" />
@@ -260,18 +291,36 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
                     <div className={`p-2 rounded-full ${message.isBot ? 'bg-blue-600 text-white' : 'bg-muted'}`}>
                       {message.isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                     </div>
-                    <div className={`p-3 rounded-lg ${
+                    <div className={`p-3 rounded-lg relative ${
                       message.isBot 
                         ? 'bg-muted text-foreground' 
                         : 'bg-primary text-primary-foreground'
                     }`}>
                       <p className="text-sm whitespace-pre-line">{message.text}</p>
-                      <span className="text-xs opacity-70">
-                        {message.timestamp.toLocaleTimeString('pt-BR', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </span>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs opacity-70">
+                          {message.timestamp.toLocaleTimeString('pt-BR', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                        {/* Botão de TTS para mensagens do bot */}
+                        {message.isBot && isTTSConfigured && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => generateAudio(message.id, message.text)}
+                            disabled={isLoadingAudio(message.id)}
+                            className="h-6 w-6 p-0 opacity-70 hover:opacity-100"
+                          >
+                            {isLoadingAudio(message.id) ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Volume2 className={`w-3 h-3 ${hasAudio(message.id) ? 'text-green-500' : ''}`} />
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

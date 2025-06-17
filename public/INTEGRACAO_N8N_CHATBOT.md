@@ -1,23 +1,19 @@
 
-# Integração do Dashboard com Chatbot N8N
+# Integração Completa N8N: Chatbot + TTS
 
 ## Visão Geral
-Este documento explica como integrar o chatbot do dashboard com N8N para criar um assistente inteligente capaz de analisar dados e fornecer insights profissionais.
+Esta documentação cobre a integração completa do dashboard com N8N, incluindo chatbot inteligente e sistema Text-to-Speech (TTS).
 
-## Configuração do N8N
+## 1. Configuração do Chatbot N8N
 
-### 1. Webhook de Entrada
-Configure um webhook HTTP no N8N para receber mensagens do dashboard:
-
+### Webhook de Entrada - Chatbot
 ```
 URL: https://seu-n8n.com/webhook/dashboard-chat
 Método: POST
 Headers: Content-Type: application/json
 ```
 
-### 2. Estrutura de Dados Enviados
-O dashboard enviará os seguintes dados para o N8N:
-
+### Estrutura de Dados Enviados - Chatbot
 ```json
 {
   "message": "pergunta do usuário",
@@ -25,7 +21,6 @@ O dashboard enviará os seguintes dados para o N8N:
     "totalVisitas": 150,
     "visitasRealizadas": 120,
     "performanceMedia": 75.5,
-    "cumprimentoMensal": 85.2,
     "valorTotal": 50000,
     "valorPago": 35000,
     "promotores": [
@@ -40,76 +35,47 @@ O dashboard enviará os seguintes dados para o N8N:
 }
 ```
 
-### 3. Fluxo de Trabalho N8N Recomendado
+## 2. Configuração do TTS N8N
 
-#### Nós Necessários:
-1. **Webhook** - Receber dados do dashboard
-2. **Code Node** - Processar e analisar dados
-3. **OpenAI/Claude** - Gerar resposta inteligente
-4. **HTTP Response** - Enviar resposta de volta
-
-## System Prompt Recomendado
-
+### Webhook de Entrada - TTS
 ```
-Você é um assistente especializado em análise de dados de vendas e performance de promotores.
-
-CONTEXTO:
-- Você tem acesso a dados em tempo real de um dashboard de controle de visitas
-- Os dados incluem performance de promotores, cumprimento de metas, análise financeira
-- Seu objetivo é fornecer insights acionáveis e recomendações práticas
-
-DADOS DISPONÍVEIS:
-- Total de visitas programadas vs realizadas
-- Performance individual por promotor
-- Cumprimento mensal de metas
-- Análise financeira (valores contratados vs pagos)
-- Distribuição geográfica e por marca
-
-INSTRUÇÕES:
-1. Seja conciso e direto
-2. Use emojis para tornar as respostas mais visuais
-3. Sempre forneça recomendações acionáveis
-4. Baseie suas análises nos dados fornecidos
-5. Use formatação markdown para melhor legibilidade
-6. Inclua métricas específicas quando relevante
-
-TIPOS DE ANÁLISE QUE VOCÊ PODE FAZER:
-- Performance: Analisar eficiência individual e da equipe
-- Financeiro: ROI, valores pendentes, projeções
-- Cumprimento: Status das metas mensais
-- Recomendações: Sugestões de melhoria baseadas nos dados
-- Tendências: Identificar padrões nos dados
-
-FORMATO DE RESPOSTA:
-- Use bullet points para listas
-- Destaque números importantes
-- Termine sempre com uma recomendação clara
+URL: https://seu-n8n.com/webhook/dashboard-tts
+Método: POST
+Headers: Content-Type: application/json
 ```
 
-## Modelo de IA Recomendado
+### Estrutura de Dados Enviados - TTS
+```json
+{
+  "text": "texto para converter em áudio",
+  "messageId": "unique-message-id",
+  "voice": "pt-BR",
+  "speed": 1.0,
+  "options": {
+    "format": "mp3",
+    "quality": "high"
+  }
+}
+```
 
-### Opção 1: OpenAI GPT-4 (Recomendado)
-- **Modelo**: `gpt-4-turbo-preview`
-- **Temperatura**: 0.3 (para respostas mais consistentes)
-- **Max Tokens**: 1000
-- **Top P**: 0.9
+### Resposta Esperada - TTS
+```json
+{
+  "audioUrl": "https://seu-storage.com/audio/message-id.mp3",
+  "duration": 15.2,
+  "format": "mp3",
+  "status": "success"
+}
+```
 
-### Opção 2: Anthropic Claude
-- **Modelo**: `claude-3-sonnet-20240229`
-- **Temperatura**: 0.2
-- **Max Tokens**: 1000
+## 3. Fluxos N8N Completos
 
-### Opção 3: Modelo Open Source (Alternativa)
-- **Modelo**: `llama-2-70b-chat` via Hugging Face
-- **Temperatura**: 0.3
-
-## Exemplo de Fluxo N8N
-
+### Fluxo Chatbot
 ```json
 {
   "nodes": [
     {
-      "name": "Webhook",
+      "name": "Webhook Chatbot",
       "type": "n8n-nodes-base.webhook",
       "parameters": {
         "httpMethod": "POST",
@@ -117,70 +83,304 @@ FORMATO DE RESPOSTA:
       }
     },
     {
-      "name": "Process Data",
+      "name": "Process Dashboard Data",
       "type": "n8n-nodes-base.code",
       "parameters": {
-        "jsCode": "// Processar dados do dashboard\nconst data = items[0].json;\nconst insights = {\n  performance: data.dashboardData.performanceMedia,\n  compliance: data.dashboardData.cumprimentoMensal,\n  financial: (data.dashboardData.valorPago / data.dashboardData.valorTotal) * 100\n};\n\nreturn [{ json: { ...data, insights } }];"
+        "jsCode": `
+          const data = items[0].json;
+          const insights = {
+            performance: data.dashboardData.performanceMedia,
+            financial: (data.dashboardData.valorPago / data.dashboardData.valorTotal) * 100,
+            topPromoters: data.dashboardData.promotores
+              .sort((a, b) => b.performance - a.performance)
+              .slice(0, 3)
+          };
+          return [{ json: { ...data, insights } }];
+        `
       }
     },
     {
-      "name": "OpenAI",
+      "name": "OpenAI Chat",
       "type": "n8n-nodes-base.openAi",
       "parameters": {
         "model": "gpt-4-turbo-preview",
         "temperature": 0.3,
-        "systemMessage": "Você é um assistente...",
+        "systemMessage": "Você é um assistente especializado em análise de dados de vendas...",
         "userMessage": "{{ $json.message }}\n\nDados: {{ JSON.stringify($json.dashboardData) }}"
       }
     },
     {
-      "name": "Respond",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": `
+          const response = items[0].json.choices[0].message.content;
+          return [{ 
+            json: { 
+              response: response,
+              timestamp: new Date().toISOString(),
+              processed: true
+            } 
+          }];
+        `
+      }
+    },
+    {
+      "name": "Respond to Dashboard",
       "type": "n8n-nodes-base.respondToWebhook",
       "parameters": {
-        "responseBody": "{{ JSON.stringify({ response: $json.choices[0].message.content }) }}"
+        "responseBody": "{{ JSON.stringify($json) }}"
       }
     }
   ]
 }
 ```
 
-## Configuração no Dashboard
-
-Para conectar o dashboard ao N8N, adicione a URL do webhook nas configurações:
-
-```typescript
-const CHATBOT_WEBHOOK_URL = 'https://seu-n8n.com/webhook/dashboard-chat';
+### Fluxo TTS
+```json
+{
+  "nodes": [
+    {
+      "name": "Webhook TTS",
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dashboard-tts"
+      }
+    },
+    {
+      "name": "Clean Text",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": `
+          const data = items[0].json;
+          // Remove markdown e emojis para melhor TTS
+          const cleanText = data.text
+            .replace(/[*#_~]/g, '')
+            .replace(/📊|📈|📉|💰|🎯|⚠️|✅|❌|🚀|💡/g, '')
+            .replace(/\n+/g, '. ')
+            .trim();
+          
+          return [{ 
+            json: { 
+              ...data, 
+              cleanText: cleanText,
+              textLength: cleanText.length
+            } 
+          }];
+        `
+      }
+    },
+    {
+      "name": "Generate Audio",
+      "type": "n8n-nodes-base.elevenlabs",
+      "parameters": {
+        "voice": "{{ $json.voice === 'pt-BR' ? 'Aria' : 'Brian' }}",
+        "text": "{{ $json.cleanText }}",
+        "model": "eleven_multilingual_v2",
+        "speed": "{{ $json.speed || 1.0 }}"
+      }
+    },
+    {
+      "name": "Save to Storage",
+      "type": "n8n-nodes-base.awsS3",
+      "parameters": {
+        "bucket": "your-audio-bucket",
+        "key": "audio/{{ $json.messageId }}.mp3",
+        "body": "{{ $binary.data }}",
+        "contentType": "audio/mpeg"
+      }
+    },
+    {
+      "name": "Generate Public URL",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "jsCode": `
+          const messageId = items[0].json.messageId;
+          const audioUrl = \`https://your-cdn.com/audio/\${messageId}.mp3\`;
+          
+          return [{ 
+            json: { 
+              audioUrl: audioUrl,
+              duration: items[0].json.duration || 0,
+              format: "mp3",
+              status: "success",
+              messageId: messageId
+            } 
+          }];
+        `
+      }
+    },
+    {
+      "name": "Respond with Audio URL",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "parameters": {
+        "responseBody": "{{ JSON.stringify($json) }}"
+      }
+    }
+  ]
+}
 ```
 
-## Testes e Monitoramento
+## 4. Alternativas para TTS
 
-1. **Teste de Conectividade**: Verifique se o webhook responde
-2. **Teste de Dados**: Envie dados de exemplo
-3. **Teste de Resposta**: Valide a qualidade das respostas
-4. **Monitoramento**: Configure logs no N8N para acompanhar o desempenho
+### Opção 1: ElevenLabs (Recomendado)
+```javascript
+// Configuração ElevenLabs
+{
+  "voice": "Aria", // Voz em português
+  "model": "eleven_multilingual_v2",
+  "stability": 0.5,
+  "similarity_boost": 0.5
+}
+```
 
-## Custos Estimados
+### Opção 2: Google Cloud TTS
+```javascript
+// Configuração Google TTS
+{
+  "languageCode": "pt-BR",
+  "voice": {
+    "name": "pt-BR-Wavenet-A"
+  },
+  "audioConfig": {
+    "audioEncoding": "MP3"
+  }
+}
+```
+
+### Opção 3: Azure Cognitive Services
+```javascript
+// Configuração Azure TTS
+{
+  "voice": "pt-BR-FranciscaNeural",
+  "rate": "0%",
+  "pitch": "0%"
+}
+```
+
+## 5. System Prompts Otimizados
+
+### Chatbot System Prompt
+```
+Você é Dasher, um assistente especializado em análise de dados de vendas e performance de promotores.
+
+CONTEXTO:
+- Dashboard de controle de visitas de promotores
+- Dados em tempo real de performance, financeiro e cumprimento de metas
+- Objetivo: insights acionáveis e recomendações práticas
+
+ESTILO DE RESPOSTA:
+- Seja conciso e direto (máximo 200 palavras)
+- Use emojis moderadamente para destacar pontos
+- Formate em markdown simples
+- Termine sempre com uma recomendação clara
+- Evite jargões técnicos excessivos
+
+ANÁLISES DISPONÍVEIS:
+- Performance individual e de equipe
+- ROI e análise financeira
+- Cumprimento de metas mensais
+- Tendências temporais
+- Comparações geográficas e por marca
+
+FORMATO PREFERIDO:
+📊 **Título da Análise**
+
+• Ponto principal 1
+• Ponto principal 2
+• Ponto principal 3
+
+💡 **Recomendação:** [ação específica]
+```
+
+## 6. Configuração no Dashboard
+
+### Variáveis de Ambiente
+```env
+# Chatbot
+VITE_CHATBOT_WEBHOOK_URL=https://seu-n8n.com/webhook/dashboard-chat
+
+# TTS
+VITE_TTS_WEBHOOK_URL=https://seu-n8n.com/webhook/dashboard-tts
+```
+
+### Validação de Configuração
+```javascript
+// O dashboard valida automaticamente:
+const isChatbotConfigured = !!import.meta.env.VITE_CHATBOT_WEBHOOK_URL;
+const isTTSConfigured = !!import.meta.env.VITE_TTS_WEBHOOK_URL;
+
+// Badges visuais indicam status:
+// 🟢 N8N Ativo - Chatbot funcionando
+// 🟢 TTS Ativo - Text-to-Speech funcionando
+// 🔴 Modo Local - Apenas respostas básicas
+```
+
+## 7. Monitoramento e Logs
+
+### Logs Essenciais - N8N
+```javascript
+// No fluxo chatbot
+console.log('Dashboard Data Received:', {
+  message: data.message,
+  dataPoints: Object.keys(data.dashboardData).length,
+  timestamp: new Date().toISOString()
+});
+
+// No fluxo TTS
+console.log('TTS Request:', {
+  messageId: data.messageId,
+  textLength: data.text.length,
+  voice: data.voice
+});
+```
+
+### Métricas de Performance
+- Tempo de resposta do chatbot: < 3 segundos
+- Tempo de geração de áudio: < 10 segundos
+- Taxa de sucesso: > 95%
+- Tamanho médio de áudio: < 1MB
+
+## 8. Custos Estimados Mensais
+
+### ElevenLabs:
+- 10.000 caracteres/mês: $1
+- 120.000 caracteres/mês: $5
+- 500.000 caracteres/mês: $22
 
 ### OpenAI GPT-4:
-- Aproximadamente $0.03 por 1K tokens de entrada
-- Aproximadamente $0.06 por 1K tokens de saída
-- Custo médio por interação: ~$0.05-0.15
+- 1.000 consultas/mês: ~$15-30
+- 10.000 consultas/mês: ~$150-300
 
-### Claude:
-- Aproximadamente $0.015 por 1K tokens de entrada
-- Aproximadamente $0.075 por 1K tokens de saída
-- Custo médio por interação: ~$0.03-0.10
+### Infraestrutura:
+- Storage de áudio: ~$2-5/mês
+- CDN para delivery: ~$1-3/mês
 
-## Segurança
+## 9. Troubleshooting
 
-1. **Autenticação**: Use API keys seguras
-2. **Rate Limiting**: Configure limites de requisições
-3. **Validação**: Valide dados de entrada
-4. **Logs**: Mantenha logs de auditoria
+### Problemas Comuns - Chatbot:
+- **Timeout**: Aumentar limite para 30s
+- **Erro 429**: Implementar rate limiting
+- **Resposta vazia**: Verificar system prompt
 
-## Suporte e Troubleshooting
+### Problemas Comuns - TTS:
+- **Áudio não carrega**: Verificar CORS do storage
+- **Qualidade baixa**: Ajustar configurações de voz
+- **Latência alta**: Usar CDN próximo aos usuários
 
-- Verifique logs do N8N em caso de erro
-- Monitore o uso da API do modelo de IA
-- Configure alertas para falhas de conectividade
-- Mantenha backup das configurações do workflow
+### Monitoramento Ativo:
+```javascript
+// Webhooks de saúde
+GET /webhook/health/chatbot
+GET /webhook/health/tts
+
+// Resposta esperada:
+{
+  "status": "healthy",
+  "latency": "250ms",
+  "requests_24h": 1250
+}
+```
+
+**Versão:** 2.0 | **TTS Support:** ✅ | **Última atualização:** Dezembro 2024
