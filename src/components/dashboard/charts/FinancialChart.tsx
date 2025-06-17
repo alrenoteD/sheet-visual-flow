@@ -9,8 +9,24 @@ interface FinancialChartProps {
 }
 
 export const FinancialChart = ({ data }: FinancialChartProps) => {
-  const financialData = data.map(item => ({
-    promotor: item.promotor.split(' ')[0],
+  // Agrupar dados por ID_PROMOTOR e somar valores
+  const groupedData = data.reduce((acc, item) => {
+    const key = item.idPromotor || item.promotor;
+    if (!acc[key]) {
+      acc[key] = {
+        idPromotor: key,
+        promotor: item.promotor.split(' ')[0],
+        valorContrato: 0,
+        valorPago: 0
+      };
+    }
+    acc[key].valorContrato += item.valorContrato;
+    acc[key].valorPago += item.valorPago;
+    return acc;
+  }, {} as Record<string, any>);
+
+  const financialData = Object.values(groupedData).map((item: any) => ({
+    promotor: item.promotor,
     valorContrato: item.valorContrato,
     valorPago: item.valorPago,
     pendente: item.valorContrato - item.valorPago
@@ -21,7 +37,7 @@ export const FinancialChart = ({ data }: FinancialChartProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="w-5 h-5" />
-          Análise Financeira
+          Análise Financeira por Promotor
         </CardTitle>
       </CardHeader>
       <CardContent>

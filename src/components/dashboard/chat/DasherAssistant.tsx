@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Send, Bot, User, Volume2, VolumeX } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useTextToSpeech } from '@/hooks/useTextToSpeech';
+import { ScreenBuddy } from './ScreenBuddy';
 
 interface Message {
   id: string;
@@ -131,7 +131,10 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
+      {/* Screen Buddy */}
+      <ScreenBuddy />
+      
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2">
           <Bot className="w-5 h-5" />

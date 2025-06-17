@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, Bot, User, Wifi, WifiOff } from 'lucide-react';
+import { MessageCircle, Send, Bot, User, Wifi, WifiOff, X, Maximize2, Minimize2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { VisitData } from '@/types/VisitData';
 
@@ -23,13 +23,15 @@ export const MiniChat = ({ data }: MiniChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Olá! Sou seu assistente de análise de dados. Como posso ajudá-lo hoje?',
+      text: 'Olá! Como posso ajudar com os dados?',
       isBot: true,
       timestamp: new Date()
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
   // Verificar se as variáveis de ambiente do chatbot estão configuradas
   const chatbotWebhookUrl = import.meta.env.VITE_CHATBOT_WEBHOOK_URL;
@@ -132,49 +134,74 @@ export const MiniChat = ({ data }: MiniChatProps) => {
     return 'Para análises mais detalhadas, configure a integração com N8N através da variável VITE_CHATBOT_WEBHOOK_URL.';
   };
 
+  if (!isVisible) {
+    return (
+      <Button
+        onClick={() => setIsVisible(true)}
+        className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full w-12 h-12 shadow-lg"
+      >
+        <MessageCircle className="w-6 h-6" />
+      </Button>
+    );
+  }
+
   return (
-    <Card className="h-96">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageCircle className="w-5 h-5" />
-          Assistente Inteligente
-          {isChatbotConfigured ? (
-            <Badge variant="default" className="bg-blue-600">
-              <Wifi className="w-3 h-3 mr-1" />
-              N8N Conectado
-            </Badge>
-          ) : (
-            <Badge variant="secondary">
-              <WifiOff className="w-3 h-3 mr-1" />
-              Modo Local
-            </Badge>
-          )}
-        </CardTitle>
+    <Card className={`transition-all duration-300 ${isExpanded ? 'w-96 h-96' : 'w-80 h-64'} shadow-xl`}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <MessageCircle className="w-4 h-4" />
+            Chat Rápido
+            {isChatbotConfigured ? (
+              <Badge variant="default" className="bg-blue-600 text-xs">
+                <Wifi className="w-3 h-3 mr-1" />
+                Online
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-xs">
+                <WifiOff className="w-3 h-3 mr-1" />
+                Local
+              </Badge>
+            )}
+          </CardTitle>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="h-6 w-6 p-0"
+            >
+              {isExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsVisible(false)}
+              className="h-6 w-6 p-0"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <ScrollArea className="h-64 w-full pr-4">
-          <div className="space-y-4">
-            {messages.map((message) => (
+      <CardContent className="space-y-3 flex flex-col h-full">
+        <ScrollArea className={`flex-1 pr-2 ${isExpanded ? 'h-64' : 'h-32'}`}>
+          <div className="space-y-2">
+            {messages.slice(-5).map((message) => (
               <div
                 key={message.id}
                 className={`flex gap-2 ${message.isBot ? 'justify-start' : 'justify-end'}`}
               >
                 <div className={`flex gap-2 max-w-[80%] ${message.isBot ? 'flex-row' : 'flex-row-reverse'}`}>
-                  <div className={`p-2 rounded-full ${message.isBot ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                    {message.isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                  <div className={`p-1 rounded-full ${message.isBot ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                    {message.isBot ? <Bot className="w-3 h-3" /> : <User className="w-3 h-3" />}
                   </div>
-                  <div className={`p-3 rounded-lg ${
+                  <div className={`p-2 rounded-lg text-xs ${
                     message.isBot 
                       ? 'bg-muted text-foreground' 
                       : 'bg-primary text-primary-foreground'
                   }`}>
-                    <p className="text-sm whitespace-pre-line">{message.text}</p>
-                    <span className="text-xs opacity-70">
-                      {message.timestamp.toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
+                    <p className="whitespace-pre-line">{message.text}</p>
                   </div>
                 </div>
               </div>
@@ -182,14 +209,14 @@ export const MiniChat = ({ data }: MiniChatProps) => {
             {isLoading && (
               <div className="flex gap-2 justify-start">
                 <div className="flex gap-2 max-w-[80%]">
-                  <div className="p-2 rounded-full bg-primary text-primary-foreground">
-                    <Bot className="w-4 h-4" />
+                  <div className="p-1 rounded-full bg-primary text-primary-foreground">
+                    <Bot className="w-3 h-3" />
                   </div>
-                  <div className="p-3 rounded-lg bg-muted">
+                  <div className="p-2 rounded-lg bg-muted">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-1 h-1 bg-primary rounded-full animate-bounce"></div>
+                      <div className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                   </div>
                 </div>
@@ -198,16 +225,17 @@ export const MiniChat = ({ data }: MiniChatProps) => {
           </div>
         </ScrollArea>
         
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Input
             placeholder="Digite sua pergunta..."
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
             disabled={isLoading}
+            className="text-xs"
           />
-          <Button onClick={sendMessage} disabled={isLoading || !inputMessage.trim()}>
-            <Send className="w-4 h-4" />
+          <Button onClick={sendMessage} disabled={isLoading || !inputMessage.trim()} size="sm">
+            <Send className="w-3 h-3" />
           </Button>
         </div>
       </CardContent>

@@ -13,8 +13,22 @@ export const MonthlyComplianceChart = ({ data }: MonthlyComplianceChartProps) =>
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const daysPassed = currentDate.getDate();
   
-  const totalVisitasPreDefinidas = data.reduce((sum, item) => sum + item.visitasPreDefinidas, 0);
-  const totalVisitasRealizadas = data.reduce((sum, item) => sum + item.visitasRealizadas, 0);
+  // Agrupar por promotor para evitar duplicatas
+  const groupedData = data.reduce((acc, item) => {
+    const key = item.idPromotor || item.promotor;
+    if (!acc[key]) {
+      acc[key] = {
+        visitasPreDefinidas: 0,
+        visitasRealizadas: 0
+      };
+    }
+    acc[key].visitasPreDefinidas += item.visitasPreDefinidas;
+    acc[key].visitasRealizadas += item.visitasRealizadas;
+    return acc;
+  }, {} as Record<string, any>);
+
+  const totalVisitasPreDefinidas = Object.values(groupedData).reduce((sum: number, item: any) => sum + item.visitasPreDefinidas, 0);
+  const totalVisitasRealizadas = Object.values(groupedData).reduce((sum: number, item: any) => sum + item.visitasRealizadas, 0);
   
   const expectedDaily = totalVisitasPreDefinidas / daysInMonth;
   const expectedSoFar = expectedDaily * daysPassed;

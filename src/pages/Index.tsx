@@ -19,6 +19,7 @@ import { PromotersPanel } from '@/components/dashboard/promoters/PromotersPanel'
 import { AdvancedReports } from '@/components/dashboard/reports/AdvancedReports';
 import { ProfessionalInsights } from '@/components/dashboard/insights/ProfessionalInsights';
 import { DateTimeWidget } from '@/components/ui/DateTimeWidget';
+import { MiniChat } from '@/components/dashboard/chat/MiniChat';
 
 export default function Index() {
   const { 
@@ -126,6 +127,11 @@ export default function Index() {
       {/* DateTime Widget - Fixed Position */}
       <div className="fixed top-4 right-4 z-50">
         <DateTimeWidget />
+      </div>
+
+      {/* Mini Chat - Fixed Position */}
+      <div className="fixed bottom-4 left-4 z-40">
+        <MiniChat data={chartData} />
       </div>
 
       <div className="container mx-auto px-4 py-6">
