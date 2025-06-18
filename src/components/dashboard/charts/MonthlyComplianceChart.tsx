@@ -30,12 +30,9 @@ export const MonthlyComplianceChart = ({ data }: MonthlyComplianceChartProps) =>
   const totalVisitasPreDefinidas = Object.values(groupedData).reduce((sum: number, item: any) => sum + item.visitasPreDefinidas, 0);
   const totalVisitasRealizadas = Object.values(groupedData).reduce((sum: number, item: any) => sum + item.visitasRealizadas, 0);
   
-  // Calcular meta diária baseada nas visitas pré-definidas totais
   const expectedDaily = totalVisitasPreDefinidas / daysInMonth;
   const expectedSoFar = expectedDaily * daysPassed;
-  
-  // Calcular percentual de cumprimento
-  const monthlyCompliance = totalVisitasPreDefinidas > 0 ? (totalVisitasRealizadas / totalVisitasPreDefinidas) * 100 : 0;
+  const monthlyCompliance = expectedSoFar > 0 ? (totalVisitasRealizadas / expectedSoFar) * 100 : 0;
 
   // Simular dados históricos para os últimos 6 meses
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
