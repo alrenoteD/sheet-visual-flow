@@ -10,9 +10,46 @@ interface PromoterRankingChartProps {
 }
 
 export const PromoterRankingChart = ({ data }: PromoterRankingChartProps) => {
-  const sortedData = [...data]
-    .sort((a, b) => b.percentual - a.percentual)
-    .slice(0, 10);
+  // Agrupar por ID_PROMOTOR
+  const groupedData = data.reduce((acc, item) => {
+    const key = item.idPromotor || item.promotor;
+    if (!acc[key]) {
+      acc[key] = {
+        idPromotor: key,
+        promotor: item.promotor,
+        totalVisitasPreDefinidas: 0,
+        totalVisitasRealizadas: 0,
+        registros: []
+      };
+    }
+    acc[key].totalVisitasPreDefinidas += item.visitasPreDefinidas;
+    acc[key].totalVisitasRealizadas += item.visitasRealizadas;
+    acc[key].registros.push(item);
+    return acc;
+  }, {} as Record<string, any>);
+
+  // Calcular performance e criar dados para o gráfico
+  const currentDate = new Date();
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const daysPassed = currentDate.getDate();
+
+  const chartData = Object.values(groupedData).map((group: any) => {
+    const metaDiaria = group.totalVisitasPreDefinidas / daysInMonth;
+    const metaEsperada = metaDiaria * daysPassed;
+    const percentualPerformance = group.totalVisitasPreDefinidas > 0 ? 
+      (group.totalVisitasRealizadas / group.totalVisitasPreDefinidas) * 100 : 0;
+    
+    return {
+      promotor: group.promotor,
+      idPromotor: group.idPromotor,
+      visitasRealizadas: group.totalVisitasRealizadas,
+      visitasPendentes: Math.max(0, group.totalVisitasPreDefinidas - group.totalVisitasRealizadas),
+      totalVisitas: group.totalVisitasPreDefinidas,
+      percentual: percentualPerformance
+    };
+  })
+  .sort((a, b) => b.percentual - a.percentual)
+  .slice(0, 10);
 
   const getPerformanceBadge = (percentual: number) => {
     if (percentual >= 90) return { color: 'bg-green-600', label: 'Excelente' };
@@ -31,36 +68,55 @@ export const PromoterRankingChart = ({ data }: PromoterRankingChartProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={sortedData} layout="horizontal">
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={chartData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
               <YAxis 
                 dataKey="promotor" 
                 type="category" 
                 stroke="hsl(var(--muted-foreground))" 
-                width={100}
+                width={120}
+                tick={{ fontSize: 12 }}
               />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'hsl(var(--card))', 
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px'
-                }} 
+                }}
+                formatter={(value, name) => {
+                  if (name === 'visitasRealizadas') return [`${value} realizadas`, 'Visitas Realizadas'];
+                  if (name === 'visitasPendentes') return [`${value} pendentes`, 'Visitas Pendentes'];
+                  return [value, name];
+                }}
               />
-              <Bar dataKey="percentual" fill="hsl(var(--chart-1))" />
+              <Bar 
+                dataKey="visitasRealizadas" 
+                stackId="a" 
+                fill="hsl(var(--chart-1))" 
+                name="Visitas Realizadas"
+              />
+              <Bar 
+                dataKey="visitasPendentes" 
+                stackId="a" 
+                fill="hsl(var(--chart-3))" 
+                name="Visitas Pendentes"
+              />
             </BarChart>
           </ResponsiveContainer>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {sortedData.slice(0, 6).map((promoter, index) => {
+            {chartData.slice(0, 6).map((promoter, index) => {
               const badge = getPerformanceBadge(promoter.percentual);
               return (
-                <div key={promoter.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                <div key={promoter.idPromotor} className="flex items-center justify-between p-2 bg-muted rounded-lg">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-muted-foreground">#{index + 1}</span>
                     <Users className="w-4 h-4" />
-                    <span className="text-sm font-medium truncate">{promoter.promotor}</span>
+                    <span className="text-sm font-medium truncate" title={promoter.promotor}>
+                      {promoter.promotor}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className={badge.color}>{badge.label}</Badge>

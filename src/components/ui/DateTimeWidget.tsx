@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock } from 'lucide-react';
+import { Clock, Eye, EyeOff } from 'lucide-react';
 
 export const DateTimeWidget = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showSeconds, setShowSeconds] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -39,12 +40,35 @@ export const DateTimeWidget = () => {
     return showSeconds ? `${hours}:${minutes}:${seconds}` : `${hours}:${minutes}`;
   };
 
+  if (!isVisible) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsVisible(true)}
+        className="glass-effect border-white/20 bg-white/10 backdrop-blur-md text-white/80 hover:text-white hover:bg-white/20"
+      >
+        <Eye className="w-4 h-4" />
+      </Button>
+    );
+  }
+
   return (
     <Card className="glass-effect border-white/20 bg-white/10 backdrop-blur-md">
       <div className="p-4 text-center">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Clock className="w-4 h-4 text-white/80" />
-          <span className="text-white/80 text-sm font-medium">Data e Hora</span>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-white/80" />
+            <span className="text-white/80 text-sm font-medium">Data e Hora</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsVisible(false)}
+            className="text-white/60 hover:text-white hover:bg-white/10 h-6 w-6 p-0"
+          >
+            <EyeOff className="w-3 h-3" />
+          </Button>
         </div>
         
         <div className="text-white text-lg font-bold mb-1">

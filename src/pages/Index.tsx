@@ -20,6 +20,7 @@ import { AdvancedReports } from '@/components/dashboard/reports/AdvancedReports'
 import { ProfessionalInsights } from '@/components/dashboard/insights/ProfessionalInsights';
 import { DateTimeWidget } from '@/components/ui/DateTimeWidget';
 import { MiniChat } from '@/components/dashboard/chat/MiniChat';
+import { PromotersAccessButton } from '@/components/dashboard/PromotersAccessButton';
 
 export default function Index() {
   const { 
@@ -62,6 +63,10 @@ export default function Index() {
 
   const handleBackToMain = () => {
     setActiveTab('overview');
+  };
+
+  const handleAccessPromoters = () => {
+    setActiveTab('promoters');
   };
 
   const renderTabContent = () => {
@@ -107,7 +112,7 @@ export default function Index() {
         );
 
       case 'promoters':
-        return <PromotersPanel data={allPagesData} onBackToMain={handleBackToMain} />;
+        return <PromotersPanel data={data} onBackToMain={handleBackToMain} />;
 
       case 'performance':
         return <AdvancedCharts data={filteredData} />;
@@ -137,6 +142,14 @@ export default function Index() {
       <div className="fixed bottom-4 left-4 z-40">
         <MiniChat data={chartData} />
       </div>
+
+      {/* Promoters Access Button - Only show on overview tab */}
+      {activeTab === 'overview' && (
+        <PromotersAccessButton 
+          onClick={handleAccessPromoters}
+          promotersCount={getUniquePromoters().length}
+        />
+      )}
 
       <div className="container mx-auto px-4 py-6">
         <DashboardHeader 
