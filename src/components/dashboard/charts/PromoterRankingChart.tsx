@@ -10,9 +10,41 @@ interface PromoterRankingChartProps {
 }
 
 export const PromoterRankingChart = ({ data }: PromoterRankingChartProps) => {
-  const sortedData = [...data]
-    .sort((a, b) => b.percentual - a.percentual)
-    .slice(0, 10);
+  const currentDate = new Date();
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const daysPassed = currentDate.getDate();
+
+  // Agrupar por ID_PROMOTOR
+  const groupedData = data.reduce((acc, item) => {
+    const idPromotor = item.idPromotor || 'N/A';
+    if (!acc[idPromotor]) {
+      acc[idPromotor] = {
+        idPromotor,
+        promotor: item.promotor,
+        visitasPreDefinidas: 0,
+        visitasRealizadas: 0,
+        valorPago: 0
+      };
+    }
+    acc[idPromotor].visitasPreDefinidas += item.visitasPreDefinidas;
+    acc[idPromotor].visitasRealizadas += item.visitasRealizadas;
+    acc[idPromotor].valorPago += item.valorPago;
+    return acc;
+  }, {} as Record<string, any>);
+
+  // Calcular performance e ordenar
+  const promotersData = Object.values(groupedData).map((promoter: any) => {
+    const expectedDaily = promoter.visitasPreDefinidas / daysInMonth;
+    const expectedSoFar = expectedDaily * daysPassed;
+    const performance = promoter.visitasPreDefinidas > 0 ? (promoter.visitasRealizadas / promoter.visitasPreDefinidas) * 100 : 0;
+    
+    return {
+      ...promoter,
+      performance,
+      visitasEsperadas: Math.round(expectedSoFar),
+      deficit: Math.max(0, Math.round(expectedSoFar) - promoter.visitasRealizadas)
+    };
+  }).sort((a, b) => b.performance - a.performance).slice(0, 10);
 
   const getPerformanceBadge = (percentual: number) => {
     if (percentual >= 90) return { color: 'bg-green-600', label: 'Excelente' };
@@ -32,7 +64,7 @@ export const PromoterRankingChart = ({ data }: PromoterRankingChartProps) => {
       <CardContent>
         <div className="space-y-4">
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={sortedData} layout="horizontal">
+            <BarChart data={promotersData} layout="horizontal">
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
               <YAxis 
@@ -46,17 +78,23 @@ export const PromoterRankingChart = ({ data }: PromoterRankingChartProps) => {
                   backgroundColor: 'hsl(var(--card))', 
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px'
-                }} 
+                }}
+                formatter={(value, name) => {
+                  if (name === 'visitasRealizadas') return [value, 'Visitas Realizadas'];
+                  if (name === 'deficit') return [value, 'Déficit'];
+                  return [value, name];
+                }}
               />
-              <Bar dataKey="percentual" fill="hsl(var(--chart-1))" />
+              <Bar dataKey="visitasRealizadas" stackId="a" fill="hsl(var(--chart-1))" />
+              <Bar dataKey="deficit" stackId="a" fill="hsl(var(--muted))" />
             </BarChart>
           </ResponsiveContainer>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {sortedData.slice(0, 6).map((promoter, index) => {
-              const badge = getPerformanceBadge(promoter.percentual);
+            {promotersData.slice(0, 6).map((promoter, index) => {
+              const badge = getPerformanceBadge(promoter.performance);
               return (
-                <div key={promoter.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                <div key={promoter.idPromotor} className="flex items-center justify-between p-2 bg-muted rounded-lg">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-muted-foreground">#{index + 1}</span>
                     <Users className="w-4 h-4" />
@@ -64,7 +102,7 @@ export const PromoterRankingChart = ({ data }: PromoterRankingChartProps) => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className={badge.color}>{badge.label}</Badge>
-                    <span className="text-sm font-bold">{promoter.percentual.toFixed(1)}%</span>
+                    <span className="text-sm font-bold">{promoter.performance.toFixed(1)}%</span>
                   </div>
                 </div>
               );

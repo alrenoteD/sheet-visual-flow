@@ -20,6 +20,7 @@ import { AdvancedReports } from '@/components/dashboard/reports/AdvancedReports'
 import { ProfessionalInsights } from '@/components/dashboard/insights/ProfessionalInsights';
 import { DateTimeWidget } from '@/components/ui/DateTimeWidget';
 import { MiniChat } from '@/components/dashboard/chat/MiniChat';
+import { PromotersAccessButton } from '@/components/dashboard/PromotersAccessButton';
 
 export default function Index() {
   const { 
@@ -88,19 +89,19 @@ export default function Index() {
             <KPICards data={filteredData} isConnected={isConnected} getUniquePromoters={getUniquePromoters} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PerformanceChart data={chartData} />
-              <BrandDistributionChart data={chartData} />
+              <PerformanceChart data={filteredData} />
+              <BrandDistributionChart data={filteredData} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CityPerformanceChart data={chartData} />
-              <PromoterRankingChart data={chartData} />
+              <CityPerformanceChart data={filteredData} />
+              <PromoterRankingChart data={filteredData} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FinancialChart data={chartData} />
+              <FinancialChart data={filteredData} />
               {shouldShowMonthlyCharts && (
-                <MonthlyComplianceChart data={allPagesData} />
+                <MonthlyComplianceChart data={filteredData} />
               )}
             </div>
           </div>
@@ -110,16 +111,16 @@ export default function Index() {
         return <PromotersPanel data={allPagesData} onBackToMain={handleBackToMain} />;
 
       case 'performance':
-        return <AdvancedCharts data={chartData} />;
+        return <AdvancedCharts data={filteredData} />;
 
       case 'analytics':
-        return <AdvancedReports data={chartData} getUniquePromoters={getUniquePromoters} />;
+        return <AdvancedReports data={filteredData} getUniquePromoters={getUniquePromoters} />;
 
       case 'insights':
-        return <ProfessionalInsights data={chartData} />;
+        return <ProfessionalInsights data={filteredData} />;
 
       case 'assistant':
-        return <DasherAssistant data={chartData} />;
+        return <DasherAssistant data={filteredData} />;
 
       default:
         return null;
@@ -132,6 +133,11 @@ export default function Index() {
       <div className="fixed top-4 right-4 z-50">
         <DateTimeWidget />
       </div>
+
+      {/* Promoters Access Button */}
+      {activeTab !== 'promoters' && (
+        <PromotersAccessButton onClick={() => setActiveTab('promoters')} />
+      )}
 
       {/* Mini Chat - Fixed Position */}
       <div className="fixed bottom-4 left-4 z-40">
