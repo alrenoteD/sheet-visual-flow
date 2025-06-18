@@ -60,6 +60,10 @@ export default function Index() {
     return Array.from(new Set(data.map(item => item.promotor.toLowerCase())));
   };
 
+  const handleBackToMain = () => {
+    setActiveTab('overview');
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
@@ -103,7 +107,7 @@ export default function Index() {
         );
 
       case 'promoters':
-        return <PromotersPanel data={allPagesData} />;
+        return <PromotersPanel data={allPagesData} onBackToMain={handleBackToMain} />;
 
       case 'performance':
         return <AdvancedCharts data={chartData} />;

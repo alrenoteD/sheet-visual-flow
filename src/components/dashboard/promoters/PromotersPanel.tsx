@@ -1,16 +1,16 @@
-
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Search, Filter, MapPin, Phone } from 'lucide-react';
+import { Users, Search, Filter, MapPin, Phone, ArrowLeft } from 'lucide-react';
 import { VisitData } from '@/types/VisitData';
 import { PromoterDetails } from './PromoterDetails';
 
 interface PromotersPanelProps {
   data: VisitData[];
+  onBackToMain?: () => void;
 }
 
 interface PromoterSummary {
@@ -26,7 +26,7 @@ interface PromoterSummary {
   registros: VisitData[];
 }
 
-export const PromotersPanel = ({ data }: PromotersPanelProps) => {
+export const PromotersPanel = ({ data, onBackToMain }: PromotersPanelProps) => {
   const [selectedPromoter, setSelectedPromoter] = useState<PromoterSummary | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'nome' | 'performance' | 'visitas'>('performance');
@@ -116,10 +116,18 @@ export const PromotersPanel = ({ data }: PromotersPanelProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Users className="w-6 h-6" />
-          <h2 className="text-2xl font-bold">Painel de Promotores</h2>
-          <Badge variant="outline">{promotersSummary.length} promotores</Badge>
+        <div className="flex items-center gap-4">
+          {onBackToMain && (
+            <Button variant="outline" size="sm" onClick={onBackToMain}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar ao Dashboard
+            </Button>
+          )}
+          <div className="flex items-center gap-2">
+            <Users className="w-6 h-6" />
+            <h2 className="text-2xl font-bold">Painel de Promotores</h2>
+            <Badge variant="outline">{promotersSummary.length} promotores</Badge>
+          </div>
         </div>
       </div>
 

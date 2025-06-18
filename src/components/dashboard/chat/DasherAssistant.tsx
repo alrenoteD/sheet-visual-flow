@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,16 +32,11 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [webhookUrl, setWebhookUrl] = useState('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { generateAudio, isLoading: ttsLoading, hasAudio, isTTSConfigured } = useTextToSpeech();
 
-  useEffect(() => {
-    const savedWebhookUrl = localStorage.getItem('chatbot-webhook-url');
-    if (savedWebhookUrl) {
-      setWebhookUrl(savedWebhookUrl);
-    }
-  }, []);
+  // Get webhook URL from environment variables
+  const webhookUrl = import.meta.env.VITE_CHATBOT_WEBHOOK_URL;
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -48,20 +44,12 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
     }
   }, [messages]);
 
-  const handleWebhookSubmit = () => {
-    localStorage.setItem('chatbot-webhook-url', webhookUrl);
-    toast({
-      title: "Webhook Configurado",
-      description: "URL do webhook salva com sucesso!"
-    });
-  };
-
   const sendMessage = async () => {
     if (!inputValue.trim()) return;
     if (!webhookUrl) {
       toast({
         title: "Webhook não configurado",
-        description: "Configure a URL do webhook do N8N primeiro.",
+        description: "Configure a variável VITE_CHATBOT_WEBHOOK_URL no ambiente.",
         variant: "destructive"
       });
       return;
@@ -143,20 +131,9 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
         
         {!webhookUrl && (
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800 mb-2">
-              Configure o webhook do N8N para usar o chatbot:
+            <p className="text-sm text-yellow-800">
+              Configure a variável de ambiente VITE_CHATBOT_WEBHOOK_URL para usar o chatbot.
             </p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="URL do webhook do N8N..."
-                value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={handleWebhookSubmit} size="sm">
-                Salvar
-              </Button>
-            </div>
           </div>
         )}
       </CardHeader>
