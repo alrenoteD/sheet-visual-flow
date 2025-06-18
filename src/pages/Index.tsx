@@ -88,19 +88,19 @@ export default function Index() {
             <KPICards data={filteredData} isConnected={isConnected} getUniquePromoters={getUniquePromoters} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PerformanceChart data={chartData} />
-              <BrandDistributionChart data={chartData} />
+              <PerformanceChart data={filteredData} />
+              <BrandDistributionChart data={filteredData} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CityPerformanceChart data={chartData} />
-              <PromoterRankingChart data={chartData} />
+              <CityPerformanceChart data={filteredData} />
+              <PromoterRankingChart data={filteredData} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FinancialChart data={chartData} />
+              <FinancialChart data={filteredData} />
               {shouldShowMonthlyCharts && (
-                <MonthlyComplianceChart data={allPagesData} />
+                <MonthlyComplianceChart data={filteredData} />
               )}
             </div>
           </div>
@@ -110,16 +110,16 @@ export default function Index() {
         return <PromotersPanel data={allPagesData} onBackToMain={handleBackToMain} />;
 
       case 'performance':
-        return <AdvancedCharts data={chartData} />;
+        return <AdvancedCharts data={filteredData} />;
 
       case 'analytics':
-        return <AdvancedReports data={chartData} getUniquePromoters={getUniquePromoters} />;
+        return <AdvancedReports data={filteredData} getUniquePromoters={getUniquePromoters} />;
 
       case 'insights':
-        return <ProfessionalInsights data={chartData} />;
+        return <ProfessionalInsights data={filteredData} />;
 
       case 'assistant':
-        return <DasherAssistant data={chartData} />;
+        return <DasherAssistant data={filteredData} />;
 
       default:
         return null;
