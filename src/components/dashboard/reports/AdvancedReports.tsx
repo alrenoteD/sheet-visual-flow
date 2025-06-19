@@ -4,7 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Download, FileText, Table, Settings } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, FileText, Table, Settings, Calendar, Filter } from 'lucide-react';
 import { VisitData } from '@/types/VisitData';
 
 interface AdvancedReportsProps {
@@ -23,6 +26,13 @@ interface ReportConfig {
   includeDatasVisitas: boolean;
   format: 'csv' | 'xlsx';
   type: 'completo' | 'consolidado';
+  filterByRede: string;
+  filterByPromotor: string;
+  filterByIdPromotor: string;
+  filterByCidade: string;
+  filterByMarca: string;
+  dateFrom: string;
+  dateTo: string;
 }
 
 export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsProps) => {
@@ -36,10 +46,65 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
     includeFinanceiro: true,
     includeDatasVisitas: false,
     format: 'csv',
-    type: 'completo'
+    type: 'completo',
+    filterByRede: '',
+    filterByPromotor: '',
+    filterByIdPromotor: '',
+    filterByCidade: '',
+    filterByMarca: '',
+    dateFrom: '',
+    dateTo: ''
   });
 
+  // Get unique values for filters
+  const uniqueRedes = [...new Set(data.map(item => item.rede))].filter(Boolean);
+  const uniquePromoters = [...new Set(data.map(item => item.promotor))].filter(Boolean);
+  const uniqueIdPromoters = [...new Set(data.map(item => item.idPromotor))].filter(Boolean);
+  const uniqueCidades = [...new Set(data.map(item => item.cidade))].filter(Boolean);
+  const uniqueMarcas = [...new Set(data.map(item => item.marca))].filter(Boolean);
+
+  const filterData = (data: VisitData[]) => {
+    let filtered = [...data];
+
+    // Apply filters
+    if (config.filterByRede) {
+      filtered = filtered.filter(item => item.rede === config.filterByRede);
+    }
+    if (config.filterByPromotor) {
+      filtered = filtered.filter(item => item.promotor === config.filterByPromotor);
+    }
+    if (config.filterByIdPromotor) {
+      filtered = filtered.filter(item => item.idPromotor === config.filterByIdPromotor);
+    }
+    if (config.filterByCidade) {
+      filtered = filtered.filter(item => item.cidade === config.filterByCidade);
+    }
+    if (config.filterByMarca) {
+      filtered = filtered.filter(item => item.marca === config.filterByMarca);
+    }
+
+    // Date range filter
+    if (config.dateFrom || config.dateTo) {
+      filtered = filtered.filter(item => {
+        if (!item.datasVisitas || item.datasVisitas.length === 0) return false;
+        
+        return item.datasVisitas.some(date => {
+          if (!date) return false;
+          const visitDate = new Date(date);
+          const fromDate = config.dateFrom ? new Date(config.dateFrom) : new Date('1900-01-01');
+          const toDate = config.dateTo ? new Date(config.dateTo) : new Date('2099-12-31');
+          
+          return visitDate >= fromDate && visitDate <= toDate;
+        });
+      });
+    }
+
+    return filtered;
+  };
+
   const generateReport = () => {
+    const filteredData = filterData(data);
+
     const headers = [];
     if (config.includePromoter) headers.push('PROMOTOR/AGÊNCIA');
     if (config.includeRede) headers.push('REDE');
@@ -56,7 +121,7 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
       headers.push('VALOR POR VISITA');
     }
     if (config.includeDatasVisitas) {
-      const maxVisits = Math.max(...data.map(item => item.datasVisitas.length));
+      const maxVisits = Math.max(...filteredData.map(item => item.datasVisitas?.length || 0));
       for (let i = 1; i <= maxVisits; i++) {
         headers.push(`DATA VISITA ${i}`);
       }
@@ -66,14 +131,14 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
 
     if (config.type === 'consolidado') {
       // Consolidar por promotor único
-      const uniquePromoters = getUniquePromoters();
-      reportData = uniquePromoters.map(promoterName => {
-        const promoterData = data.filter(item => 
-          item.promotor.toLowerCase() === promoterName.toLowerCase()
+      const uniquePromoters = [...new Set(filteredData.map(item => item.idPromotor || item.promotor))];
+      reportData = uniquePromoters.map(promoterId => {
+        const promoterData = filteredData.filter(item => 
+          (item.idPromotor || item.promotor) === promoterId
         );
         
         const consolidated = {
-          promotor: promoterName,
+          promotor: promoterData[0]?.promotor || '',
           redes: [...new Set(promoterData.map(item => item.rede))].join(', '),
           cidades: [...new Set(promoterData.map(item => item.cidade))].join(', '),
           marcas: [...new Set(promoterData.map(item => item.marca))].join(', '),
@@ -81,7 +146,7 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
           visitasRealizadas: promoterData.reduce((sum, item) => sum + item.visitasRealizadas, 0),
           valorContrato: promoterData.reduce((sum, item) => sum + item.valorContrato, 0),
           valorPago: promoterData.reduce((sum, item) => sum + item.valorPago, 0),
-          datasVisitas: promoterData.flatMap(item => item.datasVisitas).filter(date => date),
+          datasVisitas: promoterData.flatMap(item => item.datasVisitas || []).filter(date => date),
           percentual: 0,
           valorPorVisita: 0
         };
@@ -96,7 +161,7 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
         return consolidated;
       });
     } else {
-      reportData = data;
+      reportData = filteredData;
     }
 
     // Gerar linhas do CSV
@@ -104,7 +169,7 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
     
     reportData.forEach(item => {
       const row = [];
-      if (config.includePromoter) row.push(`"${item.promotor || item.promotor}"`);
+      if (config.includePromoter) row.push(`"${item.promotor || ''}"`);
       if (config.includeRede) row.push(`"${item.rede || item.redes || ''}"`);
       if (config.includeCidade) row.push(`"${item.cidade || item.cidades || ''}"`);
       if (config.includeMarca) row.push(`"${item.marca || item.marcas || ''}"`);
@@ -120,7 +185,7 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
       }
       if (config.includeDatasVisitas) {
         const dates = item.datasVisitas || [];
-        const maxVisits = Math.max(...data.map(d => d.datasVisitas?.length || 0));
+        const maxVisits = Math.max(...filteredData.map(d => d.datasVisitas?.length || 0));
         for (let i = 0; i < maxVisits; i++) {
           row.push(`"${dates[i] || ''}"`);
         }
@@ -141,8 +206,122 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
     link.click();
   };
 
+  const filteredCount = filterData(data).length;
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Filtros do Relatório
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Filtrar por Rede</Label>
+              <Select value={config.filterByRede} onValueChange={(value) => setConfig(prev => ({ ...prev, filterByRede: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas as redes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas as redes</SelectItem>
+                  {uniqueRedes.map(rede => (
+                    <SelectItem key={rede} value={rede}>{rede}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Filtrar por Promotor</Label>
+              <Select value={config.filterByPromotor} onValueChange={(value) => setConfig(prev => ({ ...prev, filterByPromotor: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os promotores" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos os promotores</SelectItem>
+                  {uniquePromoters.map(promotor => (
+                    <SelectItem key={promotor} value={promotor}>{promotor}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Filtrar por ID Promotor</Label>
+              <Select value={config.filterByIdPromotor} onValueChange={(value) => setConfig(prev => ({ ...prev, filterByIdPromotor: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os IDs" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos os IDs</SelectItem>
+                  {uniqueIdPromoters.map(id => (
+                    <SelectItem key={id} value={id}>{id}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Filtrar por Cidade</Label>
+              <Select value={config.filterByCidade} onValueChange={(value) => setConfig(prev => ({ ...prev, filterByCidade: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas as cidades" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas as cidades</SelectItem>
+                  {uniqueCidades.map(cidade => (
+                    <SelectItem key={cidade} value={cidade}>{cidade}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Filtrar por Marca</Label>
+              <Select value={config.filterByMarca} onValueChange={(value) => setConfig(prev => ({ ...prev, filterByMarca: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas as marcas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas as marcas</SelectItem>
+                  {uniqueMarcas.map(marca => (
+                    <SelectItem key={marca} value={marca}>{marca}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Data Início</Label>
+              <Input
+                type="date"
+                value={config.dateFrom}
+                onChange={(e) => setConfig(prev => ({ ...prev, dateFrom: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data Fim</Label>
+              <Input
+                type="date"
+                value={config.dateTo}
+                onChange={(e) => setConfig(prev => ({ ...prev, dateTo: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="p-3 bg-muted rounded-lg">
+            <p className="text-sm">
+              <strong>Registros filtrados:</strong> {filteredCount} de {data.length} registros
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -184,6 +363,14 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
                     onCheckedChange={() => setConfig(prev => ({ ...prev, format: 'csv' }))}
                   />
                   <label htmlFor="csv" className="text-sm">CSV</label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="xlsx"
+                    checked={config.format === 'xlsx'}
+                    onCheckedChange={() => setConfig(prev => ({ ...prev, format: 'xlsx' }))}
+                  />
+                  <label htmlFor="xlsx" className="text-sm">XLSX</label>
                 </div>
               </div>
             </div>
@@ -230,7 +417,10 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
             <div className="space-y-1">
               <p className="text-sm font-medium">Relatório {config.type === 'completo' ? 'Completo' : 'Consolidado'}</p>
               <p className="text-xs text-muted-foreground">
-                {data.length} registros • Formato: {config.format.toUpperCase()}
+                {filteredCount} registros • Formato: {config.format.toUpperCase()}
+                {(config.dateFrom || config.dateTo) && (
+                  <span> • Período: {config.dateFrom || 'início'} a {config.dateTo || 'hoje'}</span>
+                )}
               </p>
             </div>
             <Button onClick={generateReport} className="flex items-center gap-2">

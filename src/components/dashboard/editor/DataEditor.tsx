@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Save, Upload } from 'lucide-react';
 import { VisitData } from '@/types/VisitData';
-import { useState } from 'react';
-import {  toast } from '@/hooks/use-toast';
+import { useState, useCallback } from 'react';
+import { toast } from '@/hooks/use-toast';
 
 interface DataEditorProps {
   data: VisitData[];
@@ -45,7 +44,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
     valorContrato: 0
   });
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({
       idPromotor: '',
       promotor: '',
@@ -57,9 +56,16 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
       dataInicio: '',
       valorContrato: 0
     });
-  };
+  }, []);
 
-  const handleAdd = () => {
+  const updateFormField = useCallback((field: keyof PromoterForm, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  const handleAdd = useCallback(() => {
     if (!formData.idPromotor || !formData.promotor || !formData.rede || !formData.cidade || !formData.marca || !formData.telefone) {
       toast({
         title: "Campos Obrigatórios",
@@ -95,9 +101,9 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
       title: "Sucesso",
       description: "Promotor adicionado com sucesso"
     });
-  };
+  }, [formData, data, onDataUpdate, resetForm]);
 
-  const handleEdit = (item: VisitData) => {
+  const handleEdit = useCallback((item: VisitData) => {
     setEditingItem(item);
     setFormData({
       idPromotor: item.idPromotor || '',
@@ -111,9 +117,9 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
       valorContrato: item.valorContrato
     });
     setIsEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleUpdate = () => {
+  const handleUpdate = useCallback(() => {
     if (!editingItem) return;
 
     const updatedData = data.map(item => 
@@ -144,9 +150,9 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
       title: "Sucesso",
       description: "Dados atualizados com sucesso"
     });
-  };
+  }, [editingItem, formData, data, onDataUpdate, resetForm]);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = useCallback((id: string) => {
     const updatedData = data.filter(item => item.id !== id);
     onDataUpdate(updatedData);
     
@@ -154,7 +160,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
       title: "Sucesso",
       description: "Item removido com sucesso"
     });
-  };
+  }, [data, onDataUpdate]);
 
   // Agrupar dados por ID_PROMOTOR para evitar duplicatas na visualização
   const groupedData = data.reduce((acc, item) => {
@@ -194,7 +200,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
             <Input
               id="idPromotor"
               value={formData.idPromotor}
-              onChange={(e) => setFormData({...formData, idPromotor: e.target.value})}
+              onChange={(e) => updateFormField('idPromotor', e.target.value)}
               placeholder="ID único do promotor"
             />
           </div>
@@ -203,7 +209,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
             <Input
               id="promotor"
               value={formData.promotor}
-              onChange={(e) => setFormData({...formData, promotor: e.target.value})}
+              onChange={(e) => updateFormField('promotor', e.target.value)}
               placeholder="Nome do promotor"
             />
           </div>
@@ -212,7 +218,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
             <Input
               id="rede"
               value={formData.rede}
-              onChange={(e) => setFormData({...formData, rede: e.target.value})}
+              onChange={(e) => updateFormField('rede', e.target.value)}
               placeholder="Nome da rede"
             />
           </div>
@@ -221,7 +227,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
             <Input
               id="cidade"
               value={formData.cidade}
-              onChange={(e) => setFormData({...formData, cidade: e.target.value})}
+              onChange={(e) => updateFormField('cidade', e.target.value)}
               placeholder="Nome da cidade"
             />
           </div>
@@ -230,7 +236,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
             <Input
               id="marca"
               value={formData.marca}
-              onChange={(e) => setFormData({...formData, marca: e.target.value})}
+              onChange={(e) => updateFormField('marca', e.target.value)}
               placeholder="Nome da marca"
             />
           </div>
@@ -239,7 +245,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
             <Input
               id="telefone"
               value={formData.telefone}
-              onChange={(e) => setFormData({...formData, telefone: e.target.value})}
+              onChange={(e) => updateFormField('telefone', e.target.value)}
               placeholder="Número de telefone"
             />
           </div>
@@ -249,7 +255,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
               id="visitasPreDefinidas"
               type="number"
               value={formData.visitasPreDefinidas}
-              onChange={(e) => setFormData({...formData, visitasPreDefinidas: parseInt(e.target.value) || 0})}
+              onChange={(e) => updateFormField('visitasPreDefinidas', parseInt(e.target.value) || 0)}
               placeholder="Número de visitas"
             />
           </div>
@@ -260,7 +266,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
               type="number"
               step="0.01"
               value={formData.valorContrato}
-              onChange={(e) => setFormData({...formData, valorContrato: parseFloat(e.target.value) || 0})}
+              onChange={(e) => updateFormField('valorContrato', parseFloat(e.target.value) || 0)}
               placeholder="Valor do contrato"
             />
           </div>
@@ -270,7 +276,7 @@ export const DataEditor = ({ data, onDataUpdate }: DataEditorProps) => {
               id="dataInicio"
               type="date"
               value={formData.dataInicio}
-              onChange={(e) => setFormData({...formData, dataInicio: e.target.value})}
+              onChange={(e) => updateFormField('dataInicio', e.target.value)}
             />
           </div>
         </div>
