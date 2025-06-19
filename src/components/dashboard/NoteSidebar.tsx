@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { StickyNote, Save, Plus, Trash2, Cloud, HardDrive } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -15,11 +15,6 @@ interface Note {
   id: string;
   title: string;
   content: string;
-  category: string;
-  priority: 'baixa' | 'media' | 'alta';
-  status: 'ativa' | 'concluida' | 'arquivada';
-  tags: string;
-  usuario: string;
   createdAt: string;
   updatedAt: string;
   savedToSheet?: boolean;
@@ -31,10 +26,6 @@ export const NoteSidebar = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState('geral');
-  const [priority, setPriority] = useState<'baixa' | 'media' | 'alta'>('media');
-  const [status, setStatus] = useState<'ativa' | 'concluida' | 'arquivada'>('ativa');
-  const [tags, setTags] = useState('');
   const [saveToSheet, setSaveToSheet] = useState(false);
 
   // Load notes from localStorage on component mount
@@ -54,10 +45,6 @@ export const NoteSidebar = () => {
     setCurrentNote(null);
     setTitle('');
     setContent('');
-    setCategory('geral');
-    setPriority('media');
-    setStatus('ativa');
-    setTags('');
     setSaveToSheet(false);
     setIsEditing(true);
   };
@@ -66,53 +53,8 @@ export const NoteSidebar = () => {
     setCurrentNote(note);
     setTitle(note.title);
     setContent(note.content);
-    setCategory(note.category);
-    setPriority(note.priority);
-    setStatus(note.status);
-    setTags(note.tags);
     setSaveToSheet(note.savedToSheet || false);
     setIsEditing(true);
-  };
-
-  const saveToExcel = async (noteData: Note) => {
-    try {
-      // Preparar dados para o Excel com a estrutura solicitada
-      const excelData = {
-        ID_NOTA: noteData.id,
-        DATA_CRIACAO: noteData.createdAt,
-        TITULO: noteData.title,
-        CONTEUDO: noteData.content,
-        CATEGORIA: noteData.category,
-        USUARIO: noteData.usuario || 'Sistema',
-        STATUS: noteData.status.toUpperCase(),
-        TAGS: noteData.tags,
-        PRIORIDADE: noteData.priority.toUpperCase()
-      };
-
-      // Criar conteúdo CSV para a página NOTAS
-      const csvHeaders = 'ID_NOTA,DATA_CRIACAO,TITULO,CONTEUDO,CATEGORIA,USUARIO,STATUS,TAGS,PRIORIDADE';
-      const csvRow = Object.values(excelData).map(value => 
-        typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
-      ).join(',');
-      
-      const csvContent = csvHeaders + '\n' + csvRow;
-      
-      // Simular download do arquivo (em produção, isso seria enviado para o Google Sheets)
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-      
-      link.href = URL.createObjectURL(blob);
-      link.download = `nota_${noteData.id}_${timestamp}.csv`;
-      
-      // Para produção, aqui seria feita a integração com Google Sheets API
-      console.log('Dados preparados para Google Sheets (página NOTAS):', excelData);
-      
-      return true;
-    } catch (error) {
-      console.error('Erro ao salvar no Excel:', error);
-      return false;
-    }
   };
 
   const saveNote = async () => {
@@ -126,37 +68,33 @@ export const NoteSidebar = () => {
     }
 
     const now = new Date().toISOString();
-    const noteId = currentNote?.id || `nota_${Date.now()}`;
 
-    const noteData: Note = {
-      id: noteId,
+    // Preparar dados da nota
+    const noteData = {
       title,
       content,
-      category,
-      priority,
-      status,
-      tags,
-      usuario: 'Sistema',
-      createdAt: currentNote?.createdAt || now,
-      updatedAt: now,
-      savedToSheet: saveToSheet
+      saveToSheet
     };
 
     // Se selecionado salvar na planilha, tentar salvar via Google Sheets
     if (saveToSheet) {
-      const success = await saveToExcel(noteData);
-      if (!success) {
+      try {
+        // Aqui você implementaria a lógica para salvar na planilha
+        // Por exemplo, usando uma coluna específica para notas
+        console.log('Salvando nota na planilha:', noteData);
+        
+        // Simular salvamento na planilha
+        toast({
+          title: "Funcionalidade em desenvolvimento",
+          description: "Salvamento na planilha será implementado em breve. Nota salva localmente.",
+          variant: "default"
+        });
+      } catch (error) {
+        console.error('Erro ao salvar na planilha:', error);
         toast({
           title: "Erro ao salvar na planilha",
           description: "Nota salva apenas localmente",
           variant: "destructive"
-        });
-        noteData.savedToSheet = false;
-      } else {
-        toast({
-          title: "Nota salva na planilha",
-          description: "Dados enviados para a página NOTAS do Google Sheets",
-          variant: "default"
         });
       }
     }
@@ -164,7 +102,9 @@ export const NoteSidebar = () => {
     if (currentNote) {
       // Update existing note
       setNotes(prev => prev.map(note => 
-        note.id === currentNote.id ? noteData : note
+        note.id === currentNote.id 
+          ? { ...note, title, content, updatedAt: now, savedToSheet: saveToSheet }
+          : note
       ));
       toast({
         title: "Nota atualizada",
@@ -172,7 +112,15 @@ export const NoteSidebar = () => {
       });
     } else {
       // Create new note
-      setNotes(prev => [noteData, ...prev]);
+      const newNote: Note = {
+        id: Date.now().toString(),
+        title,
+        content,
+        createdAt: now,
+        updatedAt: now,
+        savedToSheet: saveToSheet
+      };
+      setNotes(prev => [newNote, ...prev]);
       toast({
         title: "Nota criada",
         description: `Nova anotação foi adicionada ${saveToSheet ? 'na planilha e localmente' : 'localmente'}`
@@ -183,10 +131,6 @@ export const NoteSidebar = () => {
     setCurrentNote(null);
     setTitle('');
     setContent('');
-    setCategory('geral');
-    setPriority('media');
-    setStatus('ativa');
-    setTags('');
     setSaveToSheet(false);
   };
 
@@ -203,29 +147,7 @@ export const NoteSidebar = () => {
     setCurrentNote(null);
     setTitle('');
     setContent('');
-    setCategory('geral');
-    setPriority('media');
-    setStatus('ativa');
-    setTags('');
     setSaveToSheet(false);
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'alta': return 'text-red-600';
-      case 'media': return 'text-yellow-600';
-      case 'baixa': return 'text-green-600';
-      default: return 'text-gray-600';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'concluida': return 'text-green-600';
-      case 'arquivada': return 'text-gray-600';
-      case 'ativa': return 'text-blue-600';
-      default: return 'text-gray-600';
-    }
   };
 
   return (
@@ -244,7 +166,7 @@ export const NoteSidebar = () => {
               Anotações e Observações
             </SheetTitle>
             <SheetDescription>
-              Gerencie suas anotações sobre o dashboard. As notas podem ser salvas localmente ou na página NOTAS do Google Sheets.
+              Gerencie suas anotações sobre o dashboard. As notas podem ser salvas localmente ou na planilha.
             </SheetDescription>
           </SheetHeader>
 
@@ -304,17 +226,6 @@ export const NoteSidebar = () => {
                               <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className={`font-medium ${getPriorityColor(note.priority)}`}>
-                              {note.priority.toUpperCase()}
-                            </span>
-                            <span className={`font-medium ${getStatusColor(note.status)}`}>
-                              {note.status.toUpperCase()}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {note.category}
-                            </span>
-                          </div>
                           <CardDescription className="text-xs">
                             {new Date(note.updatedAt).toLocaleDateString('pt-BR')} às{' '}
                             {new Date(note.updatedAt).toLocaleTimeString('pt-BR', { 
@@ -327,11 +238,6 @@ export const NoteSidebar = () => {
                           <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
                             {note.content}
                           </p>
-                          {note.tags && (
-                            <p className="text-xs text-blue-600 mb-3">
-                              Tags: {note.tags}
-                            </p>
-                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -349,7 +255,7 @@ export const NoteSidebar = () => {
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="note-title">Título *</Label>
+                  <Label htmlFor="note-title">Título</Label>
                   <Input
                     id="note-title"
                     value={title}
@@ -358,70 +264,14 @@ export const NoteSidebar = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Categoria</Label>
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="geral">Geral</SelectItem>
-                        <SelectItem value="promotores">Promotores</SelectItem>
-                        <SelectItem value="financeiro">Financeiro</SelectItem>
-                        <SelectItem value="performance">Performance</SelectItem>
-                        <SelectItem value="observacao">Observação</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Prioridade</Label>
-                    <Select value={priority} onValueChange={(value: 'baixa' | 'media' | 'alta') => setPriority(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="baixa">Baixa</SelectItem>
-                        <SelectItem value="media">Média</SelectItem>
-                        <SelectItem value="alta">Alta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
                 <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={status} onValueChange={(value: 'ativa' | 'concluida' | 'arquivada') => setStatus(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ativa">Ativa</SelectItem>
-                      <SelectItem value="concluida">Concluída</SelectItem>
-                      <SelectItem value="arquivada">Arquivada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="note-tags">Tags (separadas por vírgula)</Label>
-                  <Input
-                    id="note-tags"
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    placeholder="dashboard, importante, revisar"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="note-content">Conteúdo *</Label>
+                  <Label htmlFor="note-content">Conteúdo</Label>
                   <Textarea
                     id="note-content"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="Digite o conteúdo da anotação..."
-                    className="min-h-[200px] resize-none"
+                    className="min-h-[300px] resize-none"
                   />
                 </div>
 
@@ -432,7 +282,7 @@ export const NoteSidebar = () => {
                     onCheckedChange={setSaveToSheet}
                   />
                   <Label htmlFor="save-to-sheet" className="text-sm">
-                    Salvar também na página NOTAS do Google Sheets
+                    Salvar também na planilha do Google Sheets
                   </Label>
                 </div>
 
