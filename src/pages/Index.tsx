@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useTemporalCharts } from '@/hooks/useTemporalCharts';
@@ -164,45 +163,53 @@ export default function Index() {
         <div className="fixed bottom-4 right-4 z-30 flex flex-col gap-3">
           <Button
             onClick={handleAccessPromoters}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4 group overflow-hidden"
             size="lg"
           >
             <div className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              <span className="hidden sm:inline">Promotores</span>
+              <Users className="w-5 h-5 flex-shrink-0" />
+              <span className="max-w-0 group-hover:max-w-xs transition-all duration-300 overflow-hidden whitespace-nowrap">
+                Promotores
+              </span>
             </div>
           </Button>
           
           <Button
             onClick={() => setActiveTab('ranking')}
-            className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4"
+            className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4 group overflow-hidden"
             size="lg"
           >
             <div className="flex items-center gap-2">
-              <Trophy className="w-5 h-5" />
-              <span className="hidden sm:inline">Ranking</span>
+              <Trophy className="w-5 h-5 flex-shrink-0" />
+              <span className="max-w-0 group-hover:max-w-xs transition-all duration-300 overflow-hidden whitespace-nowrap">
+                Ranking
+              </span>
             </div>
           </Button>
           
           <Button
             onClick={() => setActiveTab('financial')}
-            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4"
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4 group overflow-hidden"
             size="lg"
           >
             <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              <span className="hidden sm:inline">Financeiro</span>
+              <DollarSign className="w-5 h-5 flex-shrink-0" />
+              <span className="max-w-0 group-hover:max-w-xs transition-all duration-300 overflow-hidden whitespace-nowrap">
+                Financeiro
+              </span>
             </div>
           </Button>
           
           <Button
             onClick={() => setActiveTab('editor')}
-            className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4"
+            className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4 group overflow-hidden"
             size="lg"
           >
             <div className="flex items-center gap-2">
-              <Edit className="w-5 h-5" />
-              <span className="hidden sm:inline">Editor</span>
+              <Edit className="w-5 h-5 flex-shrink-0" />
+              <span className="max-w-0 group-hover:max-w-xs transition-all duration-300 overflow-hidden whitespace-nowrap">
+                Editor
+              </span>
             </div>
           </Button>
         </div>

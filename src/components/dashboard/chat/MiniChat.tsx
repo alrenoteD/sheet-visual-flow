@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,7 +30,7 @@ export const MiniChat = ({ data }: MiniChatProps) => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
 
   // Verificar se as variáveis de ambiente do chatbot estão configuradas
   const chatbotWebhookUrl = import.meta.env.VITE_CHATBOT_WEBHOOK_URL;
