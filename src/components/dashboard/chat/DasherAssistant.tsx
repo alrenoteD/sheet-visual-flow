@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Bot, User, Volume2, VolumeX } from 'lucide-react';
+import { Send, Bot, User, Volume2, VolumeX, MessageCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { ScreenBuddy } from './ScreenBuddy';
@@ -38,14 +38,27 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
   // Get webhook URL from environment variables
   const webhookUrl = import.meta.env.VITE_CHATBOT_WEBHOOK_URL;
 
+  // Mensagens pré-definidas
+  const predefinedMessages = [
+    'Qual é a performance geral da equipe este mês?',
+    'Quais promotores estão com baixo desempenho?',
+    'Qual marca está tendo melhor resultado?',
+    'Como está o cumprimento de metas por cidade?',
+    'Qual o status financeiro atual dos contratos?',
+    'Quais são os principais insights dos dados?',
+    'Como melhorar a performance da equipe?',
+    'Qual a tendência de crescimento mensal?'
+  ];
+
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!inputValue.trim()) return;
+  const sendMessage = async (messageText?: string) => {
+    const textToSend = messageText || inputValue.trim();
+    if (!textToSend) return;
     if (!webhookUrl) {
       toast({
         title: "Webhook não configurado",
@@ -57,7 +70,7 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputValue,
+      text: textToSend,
       isBot: false,
       timestamp: new Date(),
     };
@@ -73,7 +86,7 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: inputValue,
+          message: textToSend,
           data: data,
           timestamp: new Date().toISOString(),
         }),
@@ -118,6 +131,10 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
     generateAudio(messageId, text);
   };
 
+  const handlePredefinedMessage = (message: string) => {
+    sendMessage(message);
+  };
+
   return (
     <div className="h-full flex flex-col relative">
       {/* Screen Buddy */}
@@ -139,6 +156,28 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col p-0">
+        {/* Botões de mensagens pré-definidas */}
+        <div className="px-4 mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-sm font-medium">Perguntas Sugeridas:</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+            {predefinedMessages.map((message, index) => (
+              <Button
+                key={index}
+                variant="outline"
+                size="sm"
+                className="text-xs text-left justify-start h-auto py-2 px-3"
+                onClick={() => handlePredefinedMessage(message)}
+                disabled={isLoading || !webhookUrl}
+              >
+                {message}
+              </Button>
+            ))}
+          </div>
+        </div>
+
         <ScrollArea className="flex-1 px-4" ref={scrollAreaRef}>
           <div className="space-y-4 pb-4">
             {messages.map((message) => (
@@ -212,7 +251,7 @@ export const DasherAssistant = ({ data }: DasherAssistantProps) => {
               className="flex-1"
             />
             <Button 
-              onClick={sendMessage} 
+              onClick={() => sendMessage()} 
               disabled={isLoading || !inputValue.trim() || !webhookUrl}
               size="sm"
             >

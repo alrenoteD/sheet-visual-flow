@@ -82,6 +82,17 @@ export const KPICards = ({ data, isConnected, getUniquePromoters }: KPICardsProp
     valorPago: 0
   });
 
+  // Nova fórmula para performance média baseada no desempenho geral
+  const currentDate = new Date();
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const daysPassed = currentDate.getDate();
+  
+  // Calcular meta esperada até o momento (visitas pré-definidas / dias do mês * dias corridos)
+  const expectedVisitsSoFar = totals.visitasPreDefinidas > 0 
+    ? (totals.visitasPreDefinidas / daysInMonth) * daysPassed 
+    : 0;
+  
+  // Performance média = (visitas realizadas / visitas pré-definidas) * 100
   const performanceMedia = totals.visitasPreDefinidas > 0 
     ? (totals.visitasRealizadas / totals.visitasPreDefinidas) * 100 
     : 0;
