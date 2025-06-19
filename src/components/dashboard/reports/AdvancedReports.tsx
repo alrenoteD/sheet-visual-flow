@@ -4,10 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, FileText, Settings, Calendar } from 'lucide-react';
+import { Download, FileText, Table, Settings } from 'lucide-react';
 import { VisitData } from '@/types/VisitData';
 
 interface AdvancedReportsProps {
@@ -26,14 +23,6 @@ interface ReportConfig {
   includeDatasVisitas: boolean;
   format: 'csv' | 'xlsx';
   type: 'completo' | 'consolidado';
-  // New filters
-  filterRede: string;
-  filterPromotor: string;
-  filterIdPromotor: string;
-  filterCidade: string;
-  filterMarca: string;
-  dateStart: string;
-  dateEnd: string;
 }
 
 export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsProps) => {
@@ -47,74 +36,10 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
     includeFinanceiro: true,
     includeDatasVisitas: false,
     format: 'csv',
-    type: 'completo',
-    filterRede: '',
-    filterPromotor: '',
-    filterIdPromotor: '',
-    filterCidade: '',
-    filterMarca: '',
-    dateStart: '',
-    dateEnd: ''
+    type: 'completo'
   });
 
-  // Get unique values for filters
-  const uniqueRedes = [...new Set(data.map(item => item.rede))].sort();
-  const uniquePromoters = getUniquePromoters();
-  const uniqueCidades = [...new Set(data.map(item => item.cidade))].sort();
-  const uniqueMarcas = [...new Set(data.map(item => item.marca))].sort();
-
-  const isDateInRange = (dateString: string, startDate: string, endDate: string) => {
-    if (!startDate || !endDate || !dateString) return true;
-    
-    const date = new Date(dateString);
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    return date >= start && date <= end;
-  };
-
-  const filterData = (originalData: VisitData[]) => {
-    let filtered = [...originalData];
-
-    // Apply filters
-    if (config.filterRede) {
-      filtered = filtered.filter(item => item.rede === config.filterRede);
-    }
-    if (config.filterPromotor) {
-      filtered = filtered.filter(item => item.promotor === config.filterPromotor);
-    }
-    if (config.filterIdPromotor) {
-      filtered = filtered.filter(item => item.idPromotor === config.filterIdPromotor);
-    }
-    if (config.filterCidade) {
-      filtered = filtered.filter(item => item.cidade === config.filterCidade);
-    }
-    if (config.filterMarca) {
-      filtered = filtered.filter(item => item.marca === config.filterMarca);
-    }
-
-    // Apply date range filter to datasVisitas
-    if (config.dateStart && config.dateEnd) {
-      filtered = filtered.filter(item => {
-        if (!item.datasVisitas || item.datasVisitas.length === 0) return false;
-        
-        return item.datasVisitas.some(date => 
-          isDateInRange(date, config.dateStart, config.dateEnd)
-        );
-      });
-    }
-
-    return filtered;
-  };
-
   const generateReport = () => {
-    const filteredData = filterData(data);
-    
-    if (filteredData.length === 0) {
-      alert('Nenhum dado encontrado com os filtros aplicados.');
-      return;
-    }
-
     const headers = [];
     if (config.includePromoter) headers.push('PROMOTOR/AGÊNCIA');
     if (config.includeRede) headers.push('REDE');
@@ -131,16 +56,19 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
       headers.push('VALOR POR VISITA');
     }
     if (config.includeDatasVisitas) {
-      headers.push('DATAS DAS VISITAS NO PERÍODO');
+      const maxVisits = Math.max(...data.map(item => item.datasVisitas.length));
+      for (let i = 1; i <= maxVisits; i++) {
+        headers.push(`DATA VISITA ${i}`);
+      }
     }
 
     let reportData: any[] = [];
 
     if (config.type === 'consolidado') {
       // Consolidar por promotor único
-      const uniquePromoters = [...new Set(filteredData.map(item => item.promotor.toLowerCase()))];
+      const uniquePromoters = getUniquePromoters();
       reportData = uniquePromoters.map(promoterName => {
-        const promoterData = filteredData.filter(item => 
+        const promoterData = data.filter(item => 
           item.promotor.toLowerCase() === promoterName.toLowerCase()
         );
         
@@ -153,20 +81,10 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
           visitasRealizadas: promoterData.reduce((sum, item) => sum + item.visitasRealizadas, 0),
           valorContrato: promoterData.reduce((sum, item) => sum + item.valorContrato, 0),
           valorPago: promoterData.reduce((sum, item) => sum + item.valorPago, 0),
-          datasVisitas: [],
+          datasVisitas: promoterData.flatMap(item => item.datasVisitas).filter(date => date),
           percentual: 0,
           valorPorVisita: 0
         };
-
-        // Filter visit dates within period
-        if (config.dateStart && config.dateEnd) {
-          consolidated.datasVisitas = promoterData
-            .flatMap(item => item.datasVisitas)
-            .filter(date => date && isDateInRange(date, config.dateStart, config.dateEnd))
-            .sort();
-        } else {
-          consolidated.datasVisitas = promoterData.flatMap(item => item.datasVisitas).filter(date => date);
-        }
 
         consolidated.percentual = consolidated.visitasPreDefinidas > 0 
           ? (consolidated.visitasRealizadas / consolidated.visitasPreDefinidas) * 100 
@@ -178,12 +96,7 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
         return consolidated;
       });
     } else {
-      reportData = filteredData.map(item => ({
-        ...item,
-        datasVisitasFiltered: config.dateStart && config.dateEnd 
-          ? item.datasVisitas.filter(date => isDateInRange(date, config.dateStart, config.dateEnd))
-          : item.datasVisitas
-      }));
+      reportData = data;
     }
 
     // Gerar linhas do CSV
@@ -206,8 +119,11 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
         row.push((item.valorPorVisita || 0).toFixed(2));
       }
       if (config.includeDatasVisitas) {
-        const dates = item.datasVisitasFiltered || item.datasVisitas || [];
-        row.push(`"${dates.join(', ')}"`);
+        const dates = item.datasVisitas || [];
+        const maxVisits = Math.max(...data.map(d => d.datasVisitas?.length || 0));
+        for (let i = 0; i < maxVisits; i++) {
+          row.push(`"${dates[i] || ''}"`);
+        }
       }
       csvRows.push(row.join(','));
     });
@@ -227,114 +143,6 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
 
   return (
     <div className="space-y-6">
-      {/* Filtros de Data e Conteúdo */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Filtros de Dados e Período
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-              <Label>Rede (Loja)</Label>
-              <Select value={config.filterRede} onValueChange={(value) => setConfig(prev => ({ ...prev, filterRede: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas as redes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todas as redes</SelectItem>
-                  {uniqueRedes.map(rede => (
-                    <SelectItem key={rede} value={rede}>{rede}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Promotor</Label>
-              <Select value={config.filterPromotor} onValueChange={(value) => setConfig(prev => ({ ...prev, filterPromotor: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os promotores" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos os promotores</SelectItem>
-                  {uniquePromoters.map(promotor => (
-                    <SelectItem key={promotor} value={promotor}>{promotor.split(' ')[0]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>ID Promotor</Label>
-              <Input
-                value={config.filterIdPromotor}
-                onChange={(e) => setConfig(prev => ({ ...prev, filterIdPromotor: e.target.value }))}
-                placeholder="ID específico"
-              />
-            </div>
-
-            <div>
-              <Label>Cidade</Label>
-              <Select value={config.filterCidade} onValueChange={(value) => setConfig(prev => ({ ...prev, filterCidade: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas as cidades" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todas as cidades</SelectItem>
-                  {uniqueCidades.map(cidade => (
-                    <SelectItem key={cidade} value={cidade}>{cidade}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Marca</Label>
-              <Select value={config.filterMarca} onValueChange={(value) => setConfig(prev => ({ ...prev, filterMarca: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas as marcas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todas as marcas</SelectItem>
-                  {uniqueMarcas.map(marca => (
-                    <SelectItem key={marca} value={marca}>{marca}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Data Início (Filtro de Visitas)</Label>
-              <Input
-                type="date"
-                value={config.dateStart}
-                onChange={(e) => setConfig(prev => ({ ...prev, dateStart: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label>Data Fim (Filtro de Visitas)</Label>
-              <Input
-                type="date"
-                value={config.dateEnd}
-                onChange={(e) => setConfig(prev => ({ ...prev, dateEnd: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          {config.dateStart && config.dateEnd && (
-            <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
-              <strong>Filtro de Período Ativo:</strong> Serão incluídas apenas as visitas realizadas entre {new Date(config.dateStart).toLocaleDateString('pt-BR')} e {new Date(config.dateEnd).toLocaleDateString('pt-BR')}.
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Configuração do Relatório */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -377,14 +185,6 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
                   />
                   <label htmlFor="csv" className="text-sm">CSV</label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="xlsx"
-                    checked={config.format === 'xlsx'}
-                    onCheckedChange={() => setConfig(prev => ({ ...prev, format: 'xlsx' }))}
-                  />
-                  <label htmlFor="xlsx" className="text-sm">XLSX (Excel)</label>
-                </div>
               </div>
             </div>
           </div>
@@ -418,7 +218,6 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
         </CardContent>
       </Card>
 
-      {/* Gerar Relatório */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -429,12 +228,9 @@ export const AdvancedReports = ({ data, getUniquePromoters }: AdvancedReportsPro
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-sm font-medium">
-                Relatório {config.type === 'completo' ? 'Completo' : 'Consolidado'}
-                {(config.dateStart && config.dateEnd) && ` - Período: ${new Date(config.dateStart).toLocaleDateString('pt-BR')} a ${new Date(config.dateEnd).toLocaleDateString('pt-BR')}`}
-              </p>
+              <p className="text-sm font-medium">Relatório {config.type === 'completo' ? 'Completo' : 'Consolidado'}</p>
               <p className="text-xs text-muted-foreground">
-                {filterData(data).length} registros filtrados • Formato: {config.format.toUpperCase()}
+                {data.length} registros • Formato: {config.format.toUpperCase()}
               </p>
             </div>
             <Button onClick={generateReport} className="flex items-center gap-2">
