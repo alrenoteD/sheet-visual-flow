@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { VisitData, GoogleSheetsConfig } from '@/types/VisitData';
@@ -136,7 +135,15 @@ export const useGoogleSheets = () => {
     const dates: string[] = [];
     for (let i = startIndex; i < row.length; i++) {
       if (row[i] && row[i].trim() !== '') {
-        dates.push(row[i].trim());
+        const dateStr = row[i].trim();
+        // Verificar se está no formato dd/mm/yyyy
+        const dateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+        if (dateRegex.test(dateStr)) {
+          dates.push(dateStr);
+        } else {
+          // Tentar outros formatos para compatibilidade
+          dates.push(dateStr);
+        }
       }
     }
     return { dates, count: dates.length };
@@ -195,7 +202,14 @@ export const useGoogleSheets = () => {
           
           const visitDates = processVisitDates(row, 9);
           const visitasRealizadas = visitDates.count;
-          const percentual = visitasPreDefinidas > 0 ? (visitasRealizadas / visitasPreDefinidas) * 100 : 0;
+          
+          // Nova fórmula de performance para item individual
+          const currentDate = new Date();
+          const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+          const daysPassed = currentDate.getDate();
+          const expectedVisitsSoFar = visitasPreDefinidas > 0 ? (visitasPreDefinidas / daysInMonth) * daysPassed : 0;
+          const percentual = expectedVisitsSoFar > 0 ? (visitasRealizadas / expectedVisitsSoFar) * 100 : 0;
+          
           const valorPorVisita = visitasPreDefinidas > 0 ? valorContrato / visitasPreDefinidas : 0;
           const valorPago = visitasRealizadas * valorPorVisita;
 

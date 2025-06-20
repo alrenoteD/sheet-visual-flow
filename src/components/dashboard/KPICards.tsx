@@ -82,18 +82,23 @@ export const KPICards = ({ data, isConnected, getUniquePromoters }: KPICardsProp
     valorPago: 0
   });
 
-  // Nova fórmula para performance média baseada no desempenho geral
+  // Nova fórmula de performance: ((visitas realizadas/((visitas pré-definidas/dias do mês)*dias corridos))*100)%
   const currentDate = new Date();
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const daysPassed = currentDate.getDate();
   
-  // Calcular meta esperada até o momento (visitas pré-definidas / dias do mês * dias corridos)
+  // Meta esperada até o momento
   const expectedVisitsSoFar = totals.visitasPreDefinidas > 0 
     ? (totals.visitasPreDefinidas / daysInMonth) * daysPassed 
     : 0;
   
-  // Performance média = (visitas realizadas / visitas pré-definidas) * 100
-  const performanceMedia = totals.visitasPreDefinidas > 0 
+  // Performance média usando a nova fórmula
+  const performanceMedia = expectedVisitsSoFar > 0 
+    ? (totals.visitasRealizadas / expectedVisitsSoFar) * 100 
+    : 0;
+
+  // Meta alcançada baseada no total do mês
+  const metaAlcancada = totals.visitasPreDefinidas > 0 
     ? (totals.visitasRealizadas / totals.visitasPreDefinidas) * 100 
     : 0;
 
@@ -114,18 +119,18 @@ export const KPICards = ({ data, isConnected, getUniquePromoters }: KPICardsProp
     {
       title: 'Performance Média',
       value: `${performanceMedia.toFixed(1)}%`,
-      subtitle: `${totals.visitasRealizadas} de ${totals.visitasPreDefinidas} visitas`,
+      subtitle: `${totals.visitasRealizadas} de ${Math.round(expectedVisitsSoFar)} esperadas até hoje`,
       icon: Target,
       color: 'text-green-600',
       badge: getPerformanceColor(performanceMedia)
     },
     {
       title: 'Meta Alcançada',
-      value: `${Math.round((totals.visitasRealizadas / totals.visitasPreDefinidas) * 100)}%`,
-      subtitle: `${uniqueNetworks} redes ativas`,
+      value: `${metaAlcancada.toFixed(1)}%`,
+      subtitle: `${totals.visitasRealizadas} de ${totals.visitasPreDefinidas} totais • ${uniqueNetworks} redes`,
       icon: TrendingUp,
       color: 'text-purple-600',
-      badge: getPerformanceColor(performanceMedia)
+      badge: getPerformanceColor(metaAlcancada)
     },
     {
       title: 'Valor Processado',

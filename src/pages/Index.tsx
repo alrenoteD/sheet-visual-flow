@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useTemporalCharts } from '@/hooks/useTemporalCharts';
@@ -10,7 +11,6 @@ import { CityPerformanceChart } from '@/components/dashboard/charts/CityPerforma
 import { PromoterRankingChart } from '@/components/dashboard/charts/PromoterRankingChart';
 import { FinancialChart } from '@/components/dashboard/charts/FinancialChart';
 import { MonthlyComplianceChart } from '@/components/dashboard/charts/MonthlyComplianceChart';
-import { AdvancedCharts } from '@/components/dashboard/advanced/AdvancedCharts';
 import { TabMenu } from '@/components/dashboard/navigation/TabMenu';
 import { DashboardFilters } from '@/components/dashboard/filters/DashboardFilters';
 import { TemporalFilters } from '@/components/dashboard/filters/TemporalFilters';
@@ -121,7 +121,14 @@ export default function Index() {
         return <PromotersPanel data={data} onBackToMain={handleBackToMain} />;
 
       case 'performance':
-        return <AdvancedCharts data={filteredData} />;
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PerformanceChart data={filteredData} />
+              <CityPerformanceChart data={filteredData} />
+            </div>
+          </div>
+        );
 
       case 'analytics':
         return <AnalyticsReports data={filteredData} />;
@@ -134,6 +141,9 @@ export default function Index() {
 
       case 'financial':
         return <FinancialAnalysis data={filteredData} />;
+
+      case 'reports':
+        return <AdvancedReports data={filteredData} getUniquePromoters={getUniquePromoters} />;
 
       case 'editor':
         return <DataEditor data={data} onDataUpdate={updateData} />;
