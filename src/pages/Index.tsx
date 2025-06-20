@@ -11,6 +11,7 @@ import { CityPerformanceChart } from '@/components/dashboard/charts/CityPerforma
 import { PromoterRankingChart } from '@/components/dashboard/charts/PromoterRankingChart';
 import { FinancialChart } from '@/components/dashboard/charts/FinancialChart';
 import { MonthlyComplianceChart } from '@/components/dashboard/charts/MonthlyComplianceChart';
+import { PromoterPerformanceCorrelationChart } from '@/components/dashboard/charts/PromoterPerformanceCorrelationChart';
 import { TabMenu } from '@/components/dashboard/navigation/TabMenu';
 import { DashboardFilters } from '@/components/dashboard/filters/DashboardFilters';
 import { TemporalFilters } from '@/components/dashboard/filters/TemporalFilters';
@@ -24,8 +25,6 @@ import { RankingAnalysis } from '@/components/dashboard/ranking/RankingAnalysis'
 import { FinancialAnalysis } from '@/components/dashboard/financial/FinancialAnalysis';
 import { DataEditor } from '@/components/dashboard/editor/DataEditor';
 import { AnalyticsReports } from '@/components/dashboard/analytics/AnalyticsReports';
-import { Button } from '@/components/ui/button';
-import { Users, Trophy, DollarSign, Edit } from 'lucide-react';
 
 export default function Index() {
   const { 
@@ -69,10 +68,6 @@ export default function Index() {
 
   const handleBackToMain = () => {
     setActiveTab('overview');
-  };
-
-  const handleAccessPromoters = () => {
-    setActiveTab('promoters');
   };
 
   const renderTabContent = () => {
@@ -127,6 +122,9 @@ export default function Index() {
               <PerformanceChart data={filteredData} />
               <CityPerformanceChart data={filteredData} />
             </div>
+            <div className="grid grid-cols-1 gap-6">
+              <PromoterPerformanceCorrelationChart data={filteredData} />
+            </div>
           </div>
         );
 
@@ -167,63 +165,6 @@ export default function Index() {
       <div className="fixed bottom-4 left-4 z-40">
         <MiniChat data={chartData} />
       </div>
-
-      {/* Floating Access Buttons - Only show on overview tab */}
-      {activeTab === 'overview' && (
-        <div className="fixed bottom-4 right-4 z-30 flex flex-col gap-3">
-          <Button
-            onClick={handleAccessPromoters}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4 group overflow-hidden"
-            size="lg"
-          >
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 flex-shrink-0" />
-              <span className="max-w-0 group-hover:max-w-xs transition-all duration-300 overflow-hidden whitespace-nowrap">
-                Promotores
-              </span>
-            </div>
-          </Button>
-          
-          <Button
-            onClick={() => setActiveTab('ranking')}
-            className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4 group overflow-hidden"
-            size="lg"
-          >
-            <div className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 flex-shrink-0" />
-              <span className="max-w-0 group-hover:max-w-xs transition-all duration-300 overflow-hidden whitespace-nowrap">
-                Ranking
-              </span>
-            </div>
-          </Button>
-          
-          <Button
-            onClick={() => setActiveTab('financial')}
-            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4 group overflow-hidden"
-            size="lg"
-          >
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 flex-shrink-0" />
-              <span className="max-w-0 group-hover:max-w-xs transition-all duration-300 overflow-hidden whitespace-nowrap">
-                Financeiro
-              </span>
-            </div>
-          </Button>
-          
-          <Button
-            onClick={() => setActiveTab('editor')}
-            className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full p-4 group overflow-hidden"
-            size="lg"
-          >
-            <div className="flex items-center gap-2">
-              <Edit className="w-5 h-5 flex-shrink-0" />
-              <span className="max-w-0 group-hover:max-w-xs transition-all duration-300 overflow-hidden whitespace-nowrap">
-                Editor
-              </span>
-            </div>
-          </Button>
-        </div>
-      )}
 
       <div className="container mx-auto px-4 py-6">
         <DashboardHeader 

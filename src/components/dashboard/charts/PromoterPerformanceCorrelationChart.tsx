@@ -71,8 +71,17 @@ export const PromoterPerformanceCorrelationChart = ({ data }: PromoterPerformanc
     }, {} as Record<string, any>);
 
     return Object.values(promoterMap).map((promoter: any, index) => {
-      const performance = promoter.totalPreDefinidas > 0 
-        ? (promoter.totalRealizadas / promoter.totalPreDefinidas) * 100 
+      // Calcular performance usando a nova fórmula
+      const currentDate = new Date();
+      const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+      const daysPassed = currentDate.getDate();
+      
+      const expectedVisitsSoFar = promoter.totalPreDefinidas > 0 
+        ? (promoter.totalPreDefinidas / daysInMonth) * daysPassed 
+        : 0;
+      
+      const performance = expectedVisitsSoFar > 0 
+        ? (promoter.totalRealizadas / expectedVisitsSoFar) * 100 
         : 0;
 
       return {
@@ -159,7 +168,7 @@ export const PromoterPerformanceCorrelationChart = ({ data }: PromoterPerformanc
               tickLine={false}
             />
             <YAxis 
-              domain={[0, 100]}
+              domain={[0, 'dataMax + 10']}
               stroke="hsl(var(--muted-foreground))"
               label={{ value: 'Performance (%)', angle: -90, position: 'insideLeft' }}
             />
